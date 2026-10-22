@@ -1,5 +1,7 @@
 <h1><img src="https://raw.githubusercontent.com/aleksozolins/orgwarrior/main/docs/logo.svg" alt="" width="44" align="top"> orgwarrior</h1>
 
+[![tests](https://github.com/aleksozolins/orgwarrior/actions/workflows/ci.yml/badge.svg)](https://github.com/aleksozolins/orgwarrior/actions/workflows/ci.yml)
+
 **A porcelain for Org's agenda.** Your tasks from the command line, with
 the Emacs you already run doing all the Org work: a
 [taskwarrior](https://taskwarrior.org)-style CLI where every task gets a

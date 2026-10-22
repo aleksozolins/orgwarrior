@@ -1,0 +1,22 @@
+# The whole suite (ERT and pytest) on the oldest Emacs supported and the newest.
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        emacs: ["29.4", "31.1"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: purcell/setup-emacs@v8.0
+        with:
+          version: ${{ matrix.emacs }}
+      - uses: astral-sh/setup-uv@v6
+      - run: uv run pytest -q
