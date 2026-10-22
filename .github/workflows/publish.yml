@@ -5,6 +5,9 @@ name: publish
 on:
   push:
     tags: ["v*"]
+  # By hand on the tag too (gh workflow run publish.yml --ref v0.1.0), should
+  # its push not start a run.
+  workflow_dispatch:
 
 jobs:
   publish:
