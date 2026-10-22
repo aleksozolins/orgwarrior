@@ -6,10 +6,20 @@ requires-python = ">=3.11"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
+authors = [{ name = "Aleks Ozolins", email = "aleks@ozolins.xyz" }]
+keywords = ["org-mode", "emacs", "agenda", "gtd", "tasks", "cli"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3",
+    "Topic :: Office/Business :: Scheduling",
+    "Topic :: Text Editors :: Emacs",
+]
 dependencies = []
 
 [project.urls]
 Homepage = "https://github.com/aleksozolins/orgwarrior"
+Issues = "https://github.com/aleksozolins/orgwarrior/issues"
 
 [project.scripts]
 orgwarrior = "orgwarrior.cli:main"
@@ -17,6 +27,10 @@ orgwarrior = "orgwarrior.cli:main"
 [build-system]
 requires = ["hatchling>=1.27"]  # 1.27: license as SPDX (PEP 639)
 build-backend = "hatchling.build"
+
+# CLAUDE.md is notes for working on the code, CLAUDE.local.md the maintainer's own.
+[tool.hatch.build.targets.sdist]
+exclude = ["CLAUDE.md", "CLAUDE.local.md"]
 
 [dependency-groups]
 dev = ["pytest"]

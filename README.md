@@ -1,11 +1,11 @@
-<h1><img src="docs/logo.svg" alt="" width="44" align="top"> orgwarrior</h1>
+<h1><img src="https://raw.githubusercontent.com/aleksozolins/orgwarrior/main/docs/logo.svg" alt="" width="44" align="top"> orgwarrior</h1>
 
 **A porcelain for Org's agenda.** Your tasks from the command line, with
 the Emacs you already run doing all the Org work: a
 [taskwarrior](https://taskwarrior.org)-style CLI where every task gets a
 short ID, and `orgwarrior ID VERB` acts on it.
 
-<p align="center"><img src="docs/screenshots/cli-today.png" alt="orgwarrior showing today's agenda: the time grid, scheduled tasks, deadlines and habits with their consistency graphs" width="760"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/aleksozolins/orgwarrior/main/docs/screenshots/cli-today.png" alt="orgwarrior showing today's agenda: the time grid, scheduled tasks, deadlines and habits with their consistency graphs" width="760"></p>
 
 - **Org does the work.** orgwarrior never parses your files: it asks your
   running Emacs (`org-agenda`, `org-todo`, `org-schedule`,
@@ -76,8 +76,8 @@ dates`, `help refile`, `help clock`…), and so does `--help` after any
 command. Several IDs at once work too: `orgwarrior c1 32 done`.
 
 <p align="center">
-  <img src="docs/screenshots/cli-show.png" alt="orgwarrior showing one task: where it is, its planning line, folded drawers, its body with a table, and its notes" width="560">
-  <img src="docs/screenshots/cli-clocked.png" alt="orgwarrior clocked week: each file, its headings and the time each holds, against their effort" width="560">
+  <img src="https://raw.githubusercontent.com/aleksozolins/orgwarrior/main/docs/screenshots/cli-show.png" alt="orgwarrior showing one task: where it is, its planning line, folded drawers, its body with a table, and its notes" width="560">
+  <img src="https://raw.githubusercontent.com/aleksozolins/orgwarrior/main/docs/screenshots/cli-clocked.png" alt="orgwarrior clocked week: each file, its headings and the time each holds, against their effort" width="560">
 </p>
 
 ## How it works
@@ -116,7 +116,7 @@ Emacs.
 ## Configuration
 
 All optional: `~/.config/orgwarrior/config.toml` (or `$XDG_CONFIG_HOME`,
-or `ORGWARRIOR_CONFIG`). [`config.toml.example`](config.toml.example) has
+or `ORGWARRIOR_CONFIG`). [`config.toml.example`](https://github.com/aleksozolins/orgwarrior/blob/main/config.toml.example) has
 every key, commented.
 
 | key | what it does |
@@ -216,4 +216,4 @@ welcome; for anything big, open an issue first so we can talk it through.
 
 ## License
 
-[GPL-3.0-or-later](LICENSE), as Emacs and Org are.
+[GPL-3.0-or-later](https://github.com/aleksozolins/orgwarrior/blob/main/LICENSE), as Emacs and Org are.
