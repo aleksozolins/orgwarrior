@@ -544,9 +544,9 @@ what was done is mostly archived."
             (org-agenda-prefix-format (or prefix org-agenda-prefix-format))
             (org-agenda-use-time-grid grid)
             ;; `org-agenda-mode' sets the mode from the start-with, globally:
-            ;; bound, so it can't outlast this view.
+            ;; bound, so it can't outlast this view.  Org 9.7's: void in 9.6.
             (org-agenda-start-with-archives-mode
-             (if orgwarrior--archives t org-agenda-start-with-archives-mode))
+             (if orgwarrior--archives t (bound-and-true-p org-agenda-start-with-archives-mode)))
             (org-agenda-archives-mode (and orgwarrior--archives t)))
         (when-let* ((old (get-buffer orgwarrior-agenda-buffer)))
           (kill-buffer old))
