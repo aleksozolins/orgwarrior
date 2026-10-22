@@ -25,12 +25,20 @@ gives it to Claude.
 ## Quick start
 
 You need **Emacs 29 or later running as a daemon** (`emacs --daemon`, or
-your system's Emacs service) and
-**[uv](https://docs.astral.sh/uv/getting-started/installation/)**, which
-installs orgwarrior, and a Python 3.11+ of its own if yours is older.
+your system's Emacs service). Then one of:
 
 ```sh
-uv tool install git+https://github.com/aleksozolins/orgwarrior
+brew install aleksozolins/tap/orgwarrior   # macOS or Linux, with Homebrew
+yay -S orgwarrior                          # Arch, from the AUR (any AUR helper)
+pipx install orgwarrior                    # anywhere with Python 3.11+ (or: uv tool install orgwarrior)
+```
+
+Want the web page or Claude too? Install
+[orgwarrior-web](https://github.com/aleksozolins/orgwarrior-web) or
+[orgwarrior-mcp](https://github.com/aleksozolins/orgwarrior-mcp) instead:
+each brings this command along, sharing one copy of the engine.
+
+```sh
 orgwarrior              # today's agenda
 orgwarrior help         # everything on one screen
 ```
@@ -44,9 +52,10 @@ orgwarrior 32 sched fri
 orgwarrior add NEXT call the dentist :@phone: s:fri
 ```
 
-Update with `uv tool upgrade orgwarrior`. An alias saves typing:
-`alias ow=orgwarrior`. For `man orgwarrior`, put the man page where `man`
-looks, beside `~/.local/bin` (again after an upgrade):
+Update as you installed it (`brew upgrade`, your AUR helper, `pipx upgrade
+orgwarrior`). An alias saves typing: `alias ow=orgwarrior`. Homebrew and
+the AUR install the man page; with pipx or uv, put it where `man` looks
+(again after an upgrade):
 
 ```sh
 mkdir -p ~/.local/share/man/man1

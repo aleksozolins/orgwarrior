@@ -327,7 +327,12 @@ crazy), nothing speculative. Several IDs per command work.
   Emacs 29 from GNU's signed tarball with libjansson (before 30,
   `json-parse-string` needs it) and run the ERT suite with it.
 - **GPL-3.0-or-later** (`LICENSE`, the SPDX line in `orgwarrior.el`).
-- **Installed from GitHub with uv**, not PyPI. README in Markdown; its
+- **Installed** with Homebrew (the tap's `orgwarrior` formula, with
+  orgwarrior-web), from the AUR, or with pipx or uv from PyPI, published
+  by `publish.yml` on a `v*` tag (trusted publishing; by hand with `gh
+  workflow run publish.yml --ref vX.Y.Z` too). CI (`ci.yml`): ERT and
+  pytest on Emacs 29.4 and 31.1; it caught a 9.7-only variable that broke
+  every view on 29. README in Markdown; its
   screenshots come from orgwarrior-web's `scripts/screenshots` (made-up
   demo files, never real ones).
 
