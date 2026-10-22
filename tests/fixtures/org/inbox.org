@@ -1,0 +1,10 @@
+#+title:    Inbox
+#+filetags: :inbox:
+#+category: Inbox
+
+* Tasks
+
+** TODO Buy batteries
+:PROPERTIES:
+:CAPTURED: [2026-09-29 Tue 21:51]
+:END:

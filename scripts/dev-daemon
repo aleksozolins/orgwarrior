@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Start (or restart, with fresh files) a throwaway `emacs -Q` daemon named
+# orgwarrior-dev on a copy of tests/fixtures/org, and write the config that
+# goes with it.  Your real daemon, init.el, config and ~/org are never
+# touched: the daemon writes org files only in its copy (fixture-init.el's
+# sandbox), whatever config talks to it.  Then scripts/dev-orgwarrior, or
+# orgwarrior-web's scripts/dev-web.  Linux and macOS (bash 3.2 and up).
+#   scripts/dev-daemon        start / reset
+#   scripts/dev-daemon stop
+set -euo pipefail
+name=orgwarrior-dev
+base=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}  # macOS has no XDG_RUNTIME_DIR; its TMPDIR is per user
+dir="${base%/}/orgwarrior-dev"
+repo=$(cd "$(dirname "$0")/.." && pwd)
+command -v emacs >/dev/null || { echo "dev-daemon: no emacs on PATH" >&2; exit 1; }
+
+# Unset, or emacsclient falls back to $ALTERNATE_EDITOR when no daemon is up.
+env -u ALTERNATE_EDITOR emacsclient --socket-name "$name" --eval '(kill-emacs)' >/dev/null 2>&1 || true
+if [[ "${1:-start}" == stop ]]; then rm -rf "$dir"; echo "stopped"; exit 0; fi
+
+rm -rf "$dir"
+mkdir -p "$dir"
+cat > "$dir/config.toml" <<TOML
+prefix_format = " %-10:c%?-6t% s"   # compact, for phone-width terminals
+
+[views]
+dash = "d"
+inbox = "i"
+next = "n"
+
+[add]
+file = "$dir/org/inbox.org"
+heading = "Tasks"
+captured = true
+
+[colors]
+NEXT = "bold cyan"
+WAIT = "bold magenta"
+
+[web]
+name = "Dev"
+TOML
+# Its chatter quiet, unless it fails: then why (a socket path too long, say).
+if ! out=$(ORGWARRIOR_FIXTURE_DEST="$dir/org" emacs -Q --daemon="$name" -l "$repo/tests/fixture-init.el" 2>&1); then
+  echo "$out" >&2
+  echo "dev-daemon: emacs didn't start" >&2
+  exit 1
+fi
+echo "orgwarrior-dev daemon running on $dir/org: try scripts/dev-orgwarrior"

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Run orgwarrior against the scripts/dev-daemon sandbox, with its config.
+set -euo pipefail
+repo=$(cd "$(dirname "$0")/.." && pwd)
+base=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}
+export ORGWARRIOR_SOCKET=orgwarrior-dev ORGWARRIOR_CONFIG="${base%/}/orgwarrior-dev/config.toml"
+[[ -f "$ORGWARRIOR_CONFIG" ]] || { echo "dev-orgwarrior: no dev daemon (scripts/dev-daemon first)" >&2; exit 1; }
+exec uv run --project "$repo" --quiet orgwarrior ${1+"$@"}  # ${1+...}: an empty "$@" under set -u, safe on bash 3.2

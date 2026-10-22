@@ -1,0 +1,49 @@
+# ~/.config/orgwarrior/config.toml -- every key is optional.
+
+# default_view = "today"          # bare `orgwarrior`: a built-in view or a [views] name
+# socket = "server"               # Emacs server socket name
+# prefix_format = " %-10:c%?-6t% s"  # compact org-agenda-prefix-format, orgwarrior only
+# tags = "inline"                 # or "right": right-aligned, like Emacs
+# time_grid = false
+# color = "auto"                  # or "always", "never"
+
+[views]                           # name -> org-agenda-custom-commands key
+# dash = "d"
+# inbox = "i"
+
+[add]                             # where `orgwarrior add` writes
+# file = "~/org/inbox.org"        # default: org-default-notes-file
+# heading = "Tasks"               # file under this heading; default: top level
+# captured = true                 # add a :CAPTURED: timestamp property
+
+[add.event]                       # where `orgwarrior add event` writes
+# file = "~/org/calendar.org"     # default: [add]'s file
+# heading = "Events"
+# captured = false
+
+[refile]                          # refile --new: a new heading to refile into
+# usual = "tasks"                 # a front end's first refile choice, matched as
+                                  # refile matches (a heading wins: tasks.org › Tasks)
+# new_in = "projects.org"         # where it goes; default: asked (a refile place)
+# new_suffix = " [/]"             # after its title; [add] captured stamps it too
+
+[colors]                          # role or TODO keyword -> color
+# NEXT = "bold cyan"
+# id = "blue"
+# todo = "bold #ff8f88"
+# habit-ready = "on-green"        # a habit's days: as Emacs draws them, unless set
+
+[web]                             # orgwarrior-web's
+# name = "Sam"                    # whose list: its page's header, the installed app's name
+
+[web.tabs]                        # orgwarrior-web's tab row, in order: label = query
+# today = "today"                 # default: today week all, then [views]
+# next = "next"                   # anything the query box takes: a view,
+# home = "+@home"                 # keywords, a tag search, a date, words
+
+[web.calendar]                    # orgwarrior-web's calendar feed
+# keywords = true                 # "NEXT Call dentist" in titles
+# deadlines = true                # deadlines as events, not only scheduled dates
+# alarms = true                   # a deadline's warning (-3d) as an alarm
+# alarm_time = "09:00"            # when, for an all-day deadline
+# deadline_prefix = "Due: "       # a deadline's title starts with it ("" for none)

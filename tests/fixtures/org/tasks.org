@@ -1,0 +1,22 @@
+#+title: Tasks
+#+tags: { @home(h) @phone @computer }
+#+tags: finances parents
+
+* Tasks
+** NEXT Call dentist :@phone:
+SCHEDULED: <{{+0}}>
+** TODO Pay rent [0/1] :finances:
+DEADLINE: <{{+2}}>
+:PROPERTIES:
+:CREATED: [2026-09-01 Tue 10:00]
+:END:
+
+Transfer from checking.
+- [ ] remember the memo line
+** WAIT Package from mom :parents:
+SCHEDULED: <{{+0}}>
+** TODO Take out trash :@home:recurring:
+SCHEDULED: <{{+0}} +1w>
+** TODO Take out trash :@home:recurring:
+SCHEDULED: <{{+3}} +1w>
+** TODO Learn to juggle :someday:

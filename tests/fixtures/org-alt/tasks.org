@@ -1,0 +1,7 @@
+#+title: Tasks
+
+* Tasks
+** TASK Water the plants
+** Waiting Hear back from the landlord
+** TASK [#2] Renew passport
+** Done Return library books

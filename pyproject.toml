@@ -1,0 +1,25 @@
+[project]
+name = "orgwarrior"
+version = "0.1.0"
+description = "A taskwarrior-style command line for org-mode's agenda, backed by a running Emacs"
+requires-python = ">=3.11"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/aleksozolins/orgwarrior"
+
+[project.scripts]
+orgwarrior = "orgwarrior.cli:main"
+
+[build-system]
+requires = ["hatchling>=1.27"]  # 1.27: license as SPDX (PEP 639)
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

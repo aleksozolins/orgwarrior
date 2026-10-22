@@ -1,0 +1,9 @@
+#+title: Projects
+
+* Orgwarrior [1/3]
+** DONE Write the spec
+** NEXT Scaffold the package :@computer:
+SCHEDULED: <{{+1}}>
+** TODO Publish to PyPI
+*** TODO Pick a license
+*** TODO Write a README

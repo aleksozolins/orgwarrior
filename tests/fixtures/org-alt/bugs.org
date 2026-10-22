@@ -1,0 +1,6 @@
+#+title: Bugs
+#+TODO: BUG FIXING | FIXED WONTFIX
+
+* Bugs
+** BUG Crash on save
+** FIXING Slow startup
