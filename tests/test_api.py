@@ -1,6 +1,7 @@
 """orgwarrior.api against a real (throwaway) daemon: what orgwarrior-web builds on."""
 
 import pytest
+from conftest import fresh_minute
 
 from orgwarrior.api import Orgwarrior, OrgwarriorError
 from orgwarrior.config import Config
@@ -108,6 +109,7 @@ def test_add_captured_override():
 
 
 def test_clock(daemon):
+    fresh_minute()
     socket, _ = daemon
     ow = Orgwarrior(Config(), socket)
     juggle = next(l["id"] for l in ow.view("all") if "juggle" in l["text"])

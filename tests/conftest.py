@@ -35,3 +35,11 @@ def daemon(tmp_path, monkeypatch):
         subprocess.run(["emacsclient", "--socket-name", name, "--eval", "(kill-emacs)"],
                        env=env, capture_output=True, timeout=10)
         time.sleep(0.05)
+
+
+def fresh_minute():
+    """Wait for a new minute if this one is nearly over: a test clocking
+    relative to now expects whole minutes, and org's clock lines count
+    minutes, so a minute passing between two calls adds one."""
+    if (second := time.localtime().tm_sec) >= 50:
+        time.sleep(60.2 - second)

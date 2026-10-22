@@ -45,6 +45,13 @@
     (insert-file-contents (expand-file-name name dir))
     (buffer-string)))
 
+(defun orgwarrior-test-fresh-minute ()
+  "Wait for a new minute if this one is nearly over: a test clocking
+relative to now (-30m, then out) expects whole minutes, and org's clock
+lines count minutes, so a minute passing between two calls adds one."
+  (let ((second (decoded-time-second (decode-time))))
+    (when (>= second 50) (sleep-for (- 60.2 second)))))
+
 (defun orgwarrior-test-id (title)
   "The displayed ID of the task titled TITLE, from the `all' view."
   (let ((line (seq-find (lambda (l) (string-match-p (regexp-quote title) (plist-get l :text)))
@@ -2096,6 +2103,7 @@ file (a real config's inbox) is an error, the file as it was."
   (should (= (round (float-time (time-subtract (orgwarrior--clock-time "+15m" nil t) nil)) 60) 15)))
 
 (ert-deftest orgwarrior-test-clock-in-and-out ()
+  (orgwarrior-test-fresh-minute)
   (orgwarrior-test-with-fixtures
     (let* ((id (orgwarrior-test-id "Learn to juggle"))
            (in (orgwarrior-test-ok :op "clock-in" :id id :time "-30m")))
@@ -2120,6 +2128,7 @@ file (a real config's inbox) is an error, the file as it was."
 
 (ert-deftest orgwarrior-test-clock-in-closes-running ()
   "Clocking in closes what's running, at the same time."
+  (orgwarrior-test-fresh-minute)
   (orgwarrior-test-with-fixtures
     (let ((juggle (orgwarrior-test-id "Learn to juggle"))
           (dentist (orgwarrior-test-id "Call dentist")))
@@ -2133,6 +2142,7 @@ file (a real config's inbox) is an error, the file as it was."
 
 (ert-deftest orgwarrior-test-clock-from-the-files ()
   "Open CLOCK lines are what's running, whatever the daemon remembers."
+  (orgwarrior-test-fresh-minute)
   (orgwarrior-test-with-fixtures
     (orgwarrior-test-logbook dir "tasks.org" "Learn to juggle :someday:\n"
                              (list (concat "CLOCK: " (orgwarrior-test-stamp (* 5 3600)))))
@@ -2153,6 +2163,7 @@ file (a real config's inbox) is an error, the file as it was."
 
 (ert-deftest orgwarrior-test-clock-memory-out-of-step ()
   "A clock closed elsewhere (Syncthing) isn't closed again on the next clock in."
+  (orgwarrior-test-fresh-minute)
   (orgwarrior-test-with-fixtures
     (orgwarrior-test-ok :op "clock-in" :id (orgwarrior-test-id "Learn to juggle") :time "-1h")
     (should (org-clocking-p))
@@ -2243,6 +2254,7 @@ file (a real config's inbox) is an error, the file as it was."
         (should (equal (plist-get today :start) (format-time-string "%F")))))))
 
 (ert-deftest orgwarrior-test-clock-edit-running ()
+  (orgwarrior-test-fresh-minute)
   (orgwarrior-test-with-fixtures
     (let ((id (orgwarrior-test-id "Learn to juggle")))
       (orgwarrior-test-ok :op "clock-in" :id id)
@@ -2256,6 +2268,7 @@ file (a real config's inbox) is an error, the file as it was."
 
 (ert-deftest orgwarrior-test-clock-add ()
   "Time already spent, logged as a finished clock: a running one goes on."
+  (orgwarrior-test-fresh-minute)
   (orgwarrior-test-with-fixtures
     (let ((id (orgwarrior-test-id "Learn to juggle"))
           (file (lambda () (orgwarrior-test-file dir "tasks.org"))))

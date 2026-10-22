@@ -2,6 +2,7 @@
 
 import re
 
+from conftest import fresh_minute
 from orgwarrior.cli import main
 
 
@@ -69,6 +70,7 @@ def test_kill(daemon, capsys):
 
 
 def test_clock(daemon, capsys):
+    fresh_minute()
     socket, org = daemon
     juggle = task_id(run(capsys, "-s", socket, "all")[1], "juggle")
     assert run(capsys, "-s", socket, "clock") == (0, "No clock running.\n", "")
@@ -91,8 +93,8 @@ def test_clock(daemon, capsys):
 def test_report(daemon, capsys):
     socket, _ = daemon
     juggle = task_id(run(capsys, "-s", socket, "all")[1], "juggle")
-    run(capsys, "-s", socket, juggle, "clock", "in", "-30m")
-    run(capsys, "-s", socket, "clock", "out")
+    # 30 minutes in one call: clocking in and out apart, a minute could pass between.
+    run(capsys, "-s", socket, juggle, "clocks", "add", "-40m", "30m")
     code, out, _ = run(capsys, "-s", socket, "clocked")
     assert code == 0 and out.splitlines()[0].startswith("Clocked · ") and f"{juggle}      Learn to juggle" in out
     assert out.rstrip().endswith("0:30")
