@@ -51,7 +51,8 @@ class Orgwarrior:
 
     def show(self, task_id: str, html: bool = False) -> dict:
         """{"id", "file", "path", "parents", "prev", "next", "heading", "title",
-        "tags", "inherited", "scheduled", "deadline", "keyword", "done", "body",
+        "tags", "inherited", "scheduled", "deadline", "when", "when_line",
+        "keyword", "done", "body",
         "lines", "links", "checkboxes", "notes", "priority", "from", "keywords",
         "keyword_keys", "done_keywords", "children", "clocks", "history",
         "log_drawers"}: `orgwarrior ID`'s
@@ -59,7 +60,11 @@ class Orgwarrior:
         outermost first; prev and next its siblings' titles, or null.  `tags` are the heading's own;
         `inherited` come from the file's #+filetags and parent headings;
         scheduled and deadline are org's timestamps ("<2026-10-16 Fri
-        +1w>"), or null, closed the CLOSED one ("[2026-10-20 Tue 09:16]"); lines are {"text", "spans", "links"}, the text as
+        +1w>"), or null, closed the CLOSED one ("[2026-10-20 Tue 09:16]");
+        when an event's date: the plain timestamp alone on the line after
+        the planning line and drawers, where add_event writes it (the when
+        verb sets it), or null, when_line that line's index into lines
+        (html leaves it out); lines are {"text", "spans", "links"}, the text as
         Emacs shows it, its links {"start", "end", "url"} being what each
         covers of it; links are {"type", "url", "text"}; checkboxes are {"line", "text", "state"}, line an index into
         lines, state "on", "off" or "trans" (see check); children are
@@ -73,7 +78,7 @@ class Orgwarrior:
         null; keywords and done_keywords are its file's (a #+TODO line
         makes them differ from file to file); clocks its own, as clocks()
         has them; with HTML, "html": its text as org exports it (body only,
-        drawers and planning left out, source blocks colored by face name:
+        drawers, planning and the when line left out, source blocks colored by face name:
         `org-keyword`...); untrusted where others wrote it, so sanitize it
         before a page shows it; history every log item, notes or not, newest first, {"n"
         (as note_edit takes it), "time", "state", "from" (a state change's
@@ -178,8 +183,8 @@ class Orgwarrior:
 
     def act(self, ids: list[str], verb: str, args: list[str] = (), note: str | None = None,
             new: str | None = None) -> list[dict]:
-        """Apply VERB (a keyword or nokeyword, sched, due, tag, pri, note,
-        prop (ARGS: name, value; value "none" removes it), effort (a
+        """Apply VERB (a keyword or nokeyword, sched, due, when (an event's
+        date, its plain timestamp: see show), tag, pri, note, prop (ARGS: name, value; value "none" removes it), effort (a
         duration, one of Effort_ALL's where set, or "none"), rename, refile,
         up, down, promote, demote, archive, kill) to IDS.
         No confirmation here: kill deletes at once.  Results

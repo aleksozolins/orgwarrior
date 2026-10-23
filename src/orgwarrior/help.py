@@ -27,6 +27,7 @@ tasks (c1: the ID beside each task)
   orgwarrior c1                   show it
   orgwarrior c1 done              any TODO keyword; nokeyword for none
   orgwarrior c1 sched fri         due DATE too; none removes it
+  orgwarrior c1 when fri 14:00    an event's date
   orgwarrior c1 +@home -someday   tags
   orgwarrior c1 pri A             up, down, none
   orgwarrior c1 note TEXT         a note; done -m NOTE with a state
@@ -147,6 +148,14 @@ After the date, a repeater and a warning period, as org writes them:
 Alone, +1w is a date (a week from today).  A new date keeps the repeater
 already there, as in Emacs; a whole timestamp is taken as written, so sched
 "<2026-10-16 14:00>" drops it.
+
+orgwarrior ID... when DATE
+
+An event's date: its plain timestamp, alone on the line under the heading
+(after any planning line and drawers), where add event writes it.  Changed
+there, or added there if it has none; none removes it.  A timestamp
+further down is the text's, left alone.  The same DATE as sched, a repeater
+too (a warning means nothing on a plain timestamp).
 
 The same dates work for views (orgwarrior fri) and add (s:fri d:+2w).""",
 
@@ -277,7 +286,7 @@ orgwarrior add event title @DATE [:tags:]
 
 An event: no keyword, the date as a plain timestamp.  @DATE takes what sched
 does, ranges and repeaters too.  It goes to [add.event] in config, else where
-tasks go.""",
+tasks go.  orgwarrior ID when DATE changes it after (help dates).""",
 
     "open": """\
 orgwarrior ID open [N]
@@ -447,7 +456,7 @@ Roles:
 }
 
 # Other words that find a topic: `orgwarrior help done`, `orgwarrior help sched`.
-ALIASES = {"sched": "dates", "due": "dates", "date": "dates", "tag": "tags", "event": "add",
+ALIASES = {"sched": "dates", "due": "dates", "when": "dates", "date": "dates", "tag": "tags", "event": "add",
            "view": "views", "note": "notes", "pri": "priority", "keyword": "keywords",
            "color": "colors", "search": "views", "down": "up", "promote": "up", "demote": "up",
            "clocks": "clock", "report": "clocked", "reports": "clocked", "prop": "properties", "effort": "properties", "property": "properties"}

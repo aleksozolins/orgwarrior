@@ -1056,6 +1056,45 @@ tags read as org reads them; a star line inside a block stays its text."
                               (funcall sched "+1w")))
       (should (equal (orgwarrior-test-id "Learn to juggle") id)))))
 
+;; An event's date: the plain timestamp on the line under its drawers, a
+;; field of its own; one further down is the text's.
+(ert-deftest orgwarrior-test-when ()
+  (orgwarrior-test-with-fixtures
+    (let* ((file (expand-file-name "calendar.org" dir))
+           (id (plist-get (orgwarrior-test-ok :op "add" :file file :event t :captured t
+                                         :fields '(:title "Hang out" :when "2026-12-25 12:00-16:00"
+                                                   :body "At Tony's\n<2026-12-31 Thu> too"))
+                          :id))
+           (when (lambda (&rest args)
+                   (orgwarrior-test-ok :op "act" :ids (vector id) :verb "when" :args (vconcat args))
+                   (orgwarrior-test-file dir "calendar.org")))
+           (show (orgwarrior-test-ok :op "show" :id id :html t)))
+      (should (equal (plist-get show :when) "<2026-12-25 Fri 12:00-16:00>"))
+      (should (string-match-p "\\`<2026-12-25"
+                              (plist-get (nth (plist-get show :when_line) (plist-get show :lines)) :text)))
+      (should-not (string-match-p "2026-12-25" (plist-get show :html)))
+      (should (string-match-p "At Tony" (plist-get show :html)))
+      (should (string-match-p ":END:\n\n<2026-12-26 Sat 10:00>\nAt Tony's\n<2026-12-31 Thu> too"
+                              (funcall when "2026-12-26" "10:00")))
+      ;; Plain words keep the repeater, a whole timestamp is exact, as sched.
+      (funcall when "2026-12-26 +1y")
+      (should (string-match-p "\n<2026-12-27 Sun \\+1y>\nAt" (funcall when "2026-12-27")))
+      (should (string-match-p "\n<2026-12-28 Mon>\nAt" (funcall when "<2026-12-28>")))
+      (should (string-match-p ":END:\n\nAt Tony's\n<2026-12-31 Thu> too" (funcall when "none")))
+      (should-not (plist-get (orgwarrior-test-ok :op "show" :id id) :when))
+      ;; None there: added under the drawers, the text's own left alone.
+      (should (string-match-p ":END:\n\n<2027-01-02 Sat>\nAt Tony's\n<2026-12-31 Thu> too"
+                              (funcall when "2027-01-02")))
+      (should (string-match-p "Can't parse date"
+                              (orgwarrior-test-error :op "act" :ids (vector id) :verb "when" :args ["fridge"])))
+      (should (orgwarrior-test-error :op "act" :ids (vector id) :verb "when" :args [])))
+    ;; Under the planning line.
+    (let ((id (orgwarrior-test-id "Learn to juggle")))
+      (orgwarrior-test-ok :op "act" :ids (vector id) :verb "sched" :args ["2026-12-25"])
+      (orgwarrior-test-ok :op "act" :ids (vector id) :verb "when" :args ["2026-12-26"])
+      (should (string-match-p "juggle :someday:\nSCHEDULED: <2026-12-25 Fri>\n<2026-12-26 Sat>\n"
+                              (orgwarrior-test-file dir "tasks.org"))))))
+
 (ert-deftest orgwarrior-test-reschedule-logs-without-prompting ()
   (orgwarrior-test-with-fixtures
     (orgwarrior-test-ok :op "act" :ids (vector (orgwarrior-test-id "Call dentist")) :verb "sched" :args ["+3d"])

@@ -73,6 +73,9 @@ any TODO keyword; nokeyword for none
 .B orgwarrior c1 sched fri
 due DATE too; none removes it
 .TP 32
+.B orgwarrior c1 when fri 14:00
+an event's date
+.TP 32
 .B orgwarrior c1 +@home \-someday
 tags
 .TP 32
@@ -209,6 +212,10 @@ fri .+1w          repeat (+1w, .+1w, ++1w)
 .RE
 .PP
 Alone, +1w is a date (a week from today).  A new date keeps the repeater already there, as in Emacs; a whole timestamp is taken as written, so sched "<2026\-10\-16 14:00>" drops it.
+.PP
+orgwarrior ID... when DATE
+.PP
+An event's date: its plain timestamp, alone on the line under the heading (after any planning line and drawers), where add event writes it.  Changed there, or added there if it has none; none removes it.  A timestamp further down is the text's, left alone.  The same DATE as sched, a repeater too (a warning means nothing on a plain timestamp).
 .PP
 The same dates work for views (orgwarrior fri) and add (s:fri d:+2w).
 .SS tags
@@ -443,7 +450,7 @@ orgwarrior add event Mom's birthday @2026\-11\-03 +1y
 .fi
 .RE
 .PP
-An event: no keyword, the date as a plain timestamp.  @DATE takes what sched does, ranges and repeaters too.  It goes to [add.event] in config, else where tasks go.
+An event: no keyword, the date as a plain timestamp.  @DATE takes what sched does, ranges and repeaters too.  It goes to [add.event] in config, else where tasks go.  orgwarrior ID when DATE changes it after (help dates).
 .SS notes
 .nf
 .B orgwarrior ID... note TEXT

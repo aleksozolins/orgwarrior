@@ -177,6 +177,13 @@ crazy), nothing speculative. Several IDs per command work.
   one; plain words keep an existing repeater, as org does; a whole
   `<...>` timestamp is exact (its cookies, or none, replace what was
   there): how a front end saves what its fields show.
+- **An event's date** (`when`): the plain timestamp alone on the line
+  under the planning line and drawers, where add event writes it
+  (`orgwarrior--when-line`; one further down is the text's). Its own
+  verb, as `sched` would add a second date; the same dates and repeater
+  rule as `sched`, written by orgwarrior (org has no command for it).
+  show's `when` and `when_line`; `html` leaves the line out, so a front
+  end shows it as a field.
 - **Keywords**: any of the task's file's (`#+TODO`), any case, written as
   the file spells it; any heading takes one, `nokeyword` removes it. A
   change org blocks (`org-enforce-todo-dependencies`, ORDERED, checkbox

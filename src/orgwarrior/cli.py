@@ -538,7 +538,7 @@ def confirm_kill(ids: list[str], socket: str | None, painter: Painter) -> bool:
 
 
 # Verbs that aren't TODO keywords, so never want a state-change note.
-NOT_KEYWORDS = ("sched", "due", "tag", "refile", "kill", "edit", "archive", "rename", "open",
+NOT_KEYWORDS = ("sched", "due", "when", "tag", "refile", "kill", "edit", "archive", "rename", "open",
                 "note", "pri", "up", "down", "promote", "demote", "nokeyword", "prop", "effort")
 OPENABLE = ("http", "https", "mailto")
 

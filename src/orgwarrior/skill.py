@@ -101,7 +101,8 @@ EOF
 - Elsewhere, only when they say where: `--to PLACE` (a refile target or a
   file, `--to projects.org`).
 - **An event** (an appointment: no keyword, a plain timestamp):
-  `orgwarrior add event Dentist @fri 14:00-15:00`.
+  `orgwarrior add event Dentist @fri 14:00-15:00`. To move one later,
+  `orgwarrior ID when sat 10:00` (not `sched`, which would add a second date).
 
 It prints the new ID and heading; follow-ups use that ID.
 

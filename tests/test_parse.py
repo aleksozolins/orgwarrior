@@ -400,6 +400,11 @@ def test_prop_and_effort_parse():
     assert h.topic("effort") == h.TOPICS["properties"]
 
 
+def test_when_parse():
+    assert p("c1", "when", "fri", "14:00") == Act(["c1"], "when", ["fri", "14:00"])
+    assert h.topic("when") == h.TOPICS["dates"]
+
+
 def test_clock_parse():
     assert p("clock") == Clock("status")
     assert p("clock", "--short") == Clock("status", short=True)

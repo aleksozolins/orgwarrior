@@ -522,6 +522,55 @@ date already there)."
       (pcase-let ((`(,date . ,cookies) (orgwarrior--read-timestamp string)))
         (list (if cookies (orgwarrior--stamp date cookies) (car date)))))))
 
+(defun orgwarrior--goto-when ()
+  "Go to where the entry at point's event date goes: the first line after
+its planning line, drawers and blank lines."
+  (org-back-to-heading t)
+  (let ((heading-end (line-end-position)))
+    (org-end-of-meta-data t)
+    ;; Org 9.6 stops before the blank lines.
+    (skip-chars-forward " \t\n")
+    (beginning-of-line)
+    ;; A heading on the file's last line, no newline after it.
+    (when (< (point) heading-end) (goto-char heading-end))))
+
+(defun orgwarrior--when-line ()
+  "The date of the entry at point as an event has it: (BEG END STAMP) of
+the line right after its planning line and drawers, when that line holds
+only a plain active timestamp (or a range), END past its newline.  Where
+add event writes it; a timestamp further down is the text's, else nil."
+  (save-excursion
+    (orgwarrior--goto-when)
+    (when (and (not (org-at-heading-p))
+               (looking-at (concat "[ \t]*\\(" org-tsr-regexp "\\)[ \t]*$")))
+      (list (point) (min (point-max) (1+ (line-end-position))) (match-string-no-properties 1)))))
+
+(defun orgwarrior--when-action (string)
+  "The function setting the entry at point's event date (`orgwarrior--when-line')
+to STRING, a date with optional cookies or a whole <...> timestamp, as
+sched takes them; added after the planning line and drawers if it has
+none.  Plain words keep the repeater already there, as sched does."
+  (let* ((string (string-trim string))
+         (exact (string-match "\\`<\\(.*\\)>\\'" string))
+         (parsed (orgwarrior--read-timestamp (if exact (match-string 1 string) string))))
+    (lambda ()
+      (let* ((old (orgwarrior--when-line))
+             (cookies (or (cdr parsed)
+                          (and (not exact) old
+                               (string-match "<[^>]* \\([.+]?\\+[0-9]+[hdwmy]\\(?:/[0-9]+[hdwmy]\\)?\\)[ >]"
+                                             (nth 2 old))
+                               (list (match-string 1 (nth 2 old))))))
+             (stamp (orgwarrior--stamp (car parsed) cookies)))
+        (save-excursion
+          (if old
+              (delete-region (goto-char (nth 0 old)) (nth 1 old))
+            (orgwarrior--goto-when)
+            ;; No text: above the blank lines before the next heading.
+            (when (org-at-heading-p)
+              (skip-chars-backward " \t\n")
+              (forward-line 1)))
+          (if (bolp) (insert stamp "\n") (insert "\n" stamp)))))))
+
 
 ;;;; Views
 
@@ -836,7 +885,8 @@ actions move their positions onto markers, and the index's are cached."
 exports it (`orgwarrior--html')."
   (pcase-let ((`(,index . ,entry) (orgwarrior--resolve-anywhere id)))
     (orgwarrior--at entry
-      (pcase-let ((`(,body-start . ,body-end) (orgwarrior--entry-region)))
+      (pcase-let ((`(,body-start . ,body-end) (orgwarrior--entry-region))
+                  (event-date (orgwarrior--when-line)))
         (append
          (list :id (orgwarrior--id index (orgwarrior-entry-hash entry))
               :file (orgwarrior--file-key (orgwarrior--buffer-file))
@@ -852,6 +902,10 @@ exports it (`orgwarrior--html')."
               :scheduled (or (org-entry-get nil "SCHEDULED") :null)
               :deadline (or (org-entry-get nil "DEADLINE") :null)
               :closed (or (org-entry-get nil "CLOSED") :null)
+              ;; An event's date, and its line in :lines, for a front end
+              ;; to show as a field, not text.
+              :when (or (nth 2 event-date) :null)
+              :when_line (if event-date (- (line-number-at-pos (car event-date)) (line-number-at-pos)) :null)
               :body (string-trim-right (buffer-substring-no-properties body-start body-end))
               :lines (orgwarrior--fontified-lines (point) body-end (org-get-todo-state))
               :links (orgwarrior--links (point) body-end)
@@ -876,27 +930,30 @@ exports it (`orgwarrior--html')."
               :children (orgwarrior--children index)
               ;; Its own clocks, newest first, as `orgwarrior--clocks' numbers them.
               :clocks (plist-get (orgwarrior--clocks-here index) :clocks))
-         (and html (list :html (orgwarrior--html body-start body-end)))
+         (and html (list :html (orgwarrior--html body-start body-end event-date)))
          (orgwarrior--keyword-props))))))
 
-(defun orgwarrior--html (start end)
+(defun orgwarrior--html (start end &optional event-date)
   "The entry's text from START to END as org exports it to HTML, body
 only: what a front end shows read (bold, lists, tables, links, source
-blocks), so nothing drifts from org's own reading of it.  Drawers and the
-planning line left out (a front end shows those its own way).  Source
+blocks), so nothing drifts from org's own reading of it.  Drawers, the
+planning line and EVENT-DATE's line (`orgwarrior--when-line') left out (a front
+end shows those its own way).  Source
 blocks colored by face name (`org-keyword', `org-string'...), not the
 daemon's colors, for the front end's theme.  Babel off: exporting never
 runs a block."
-  (let ((text (buffer-substring-no-properties
-               ;; Exported alone, with no heading above it, a planning line
-               ;; would read as a paragraph: it's left out here.
-               (save-excursion (goto-char start)
-                               (when (looking-at-p org-planning-line-re) (forward-line 1))
-                               (point))
-               end))
-        (org-export-use-babel nil)
-        (org-html-htmlize-output-type 'css)
-        (org-html-htmlize-font-prefix "org-"))
+  (let* ((start (save-excursion (goto-char start)
+                                ;; Exported alone, with no heading above it, a planning
+                                ;; line would read as a paragraph: it's left out here.
+                                (when (looking-at-p org-planning-line-re) (forward-line 1))
+                                (point)))
+         (text (if event-date
+                   (concat (buffer-substring-no-properties start (nth 0 event-date))
+                           (buffer-substring-no-properties (nth 1 event-date) end))
+                 (buffer-substring-no-properties start end)))
+         (org-export-use-babel nil)
+         (org-html-htmlize-output-type 'css)
+         (org-html-htmlize-font-prefix "org-"))
     (if (not (org-string-nw-p text)) ""
       (org-export-string-as text 'html t
                             '(:with-drawers nil :with-planning nil :with-properties nil
@@ -1677,6 +1734,13 @@ a `user-error' if they don't make sense here."
                   (save-excursion
                     (when (re-search-forward re (save-excursion (outline-next-heading) (point)) t)
                       (replace-match (substring exact 1 -1) t t nil 1))))))))))
+     ((equal verb "when")
+      (let ((date (string-join args " ")))
+        (cond
+         ((string-empty-p date) (user-error "when needs a date (or \"none\")"))
+         ((member date '("none" "-"))
+          (lambda () (when-let* ((old (orgwarrior--when-line))) (delete-region (nth 0 old) (nth 1 old)))))
+         (t (orgwarrior--when-action date)))))
      ((equal verb "note") #'ignore)
      ((equal verb "prop")
       (let ((name (car args)) (value (string-join (cdr args) " ")))

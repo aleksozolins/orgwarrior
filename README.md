@@ -81,6 +81,7 @@ orgwarrior help --man > ~/.local/share/man/man1/orgwarrior.1
 | `orgwarrior closed week` | what was done, day by day, archived tasks too |
 | `orgwarrior c1 edit` | the task in Emacs, in this terminal |
 | `orgwarrior add event Dentist @fri 10:30` | an event: a plain timestamp, no keyword |
+| `orgwarrior c1 when sat 10:30` | an event's date, moved |
 
 `orgwarrior help TOPIC` covers each part in full, with examples (`help
 dates`, `help refile`, `help clock`…), and so does `--help` after any
