@@ -54,6 +54,9 @@ would drift from org's real agenda logic).
   places, and marked `read_only` in show, view lines, outlines and
   `calendar` (the feed leaves it out). The mode, not a config list: Emacs
   itself honors it, and it lives with the file the script writes.
+- **All day**: a view line that's an event on a day without a time (org's
+  `type` timestamp, sexp or block, no `time-of-day`, no keyword) has
+  `all_day`, for a front end to put first; the CLI keeps org's order.
 - No daemon: one line ("no Emacs daemon running on socket … start one
   with `emacs --daemon`"), exit 1. `ALTERNATE_EDITOR` is stripped for
   `emacsclient` (set to an editor like nvim, with no daemon it launches and hangs).

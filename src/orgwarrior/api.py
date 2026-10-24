@@ -39,7 +39,9 @@ class Orgwarrior:
         search here: a front end's query box only shows views.  WIDTH is
         what org right-aligns tags to with tags = "right".  ARCHIVE (or
         --archive in QUERY) takes in the archive files too.  A line of a
-        task in a read-only file (see show) has "read_only": true."""
+        task in a read-only file (see show) has "read_only": true; an event
+        on a day without a time (a plain timestamp, a diary sexp, a day of a
+        range, no keyword) "all_day": true."""
         try:
             command, _ = cli.parse(query.split(), self.config)
         except cli.UsageError:

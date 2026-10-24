@@ -687,7 +687,8 @@ is a tag match."
                                    :spans (orgwarrior--line-spans line))
                              (when graph (list :habit (orgwarrior--habit graph)))
                              (when (and marker (orgwarrior--read-only-p (marker-buffer marker)))
-                               (list :read_only t))))
+                               (list :read_only t))
+                             (when (orgwarrior--all-day-p bol) (list :all_day t))))
                           (when-let* (((get-text-property bol 'org-date-line))
                                       (day (get-text-property bol 'day)))
                             (pcase-let ((`(,m ,d ,y) (calendar-gregorian-from-absolute day)))
@@ -695,6 +696,13 @@ is a tag match."
                   lines)))
         (forward-line 1))
       (vconcat (nreverse lines)))))
+
+(defun orgwarrior--all-day-p (pos)
+  "Whether the agenda line at POS is an event on a day without a time: a
+plain timestamp, a diary sexp or a day of a range, with no keyword."
+  (and (member (get-text-property pos 'type) '("timestamp" "sexp" "block"))
+       (not (get-text-property pos 'time-of-day))
+       (not (get-text-property pos 'todo-state))))
 
 (defun orgwarrior--habit-graph (line)
   "The consistency graph org-habit put at the end of LINE, or nil."

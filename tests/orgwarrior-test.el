@@ -364,6 +364,27 @@ later one its own, numbered, so each has an ID and acts alone."
       (should-not (funcall grid-p (orgwarrior-test-ok :op "view" :kind "today")))
       (should (funcall grid-p (orgwarrior-test-ok :op "view" :kind "today" :grid t))))))
 
+(ert-deftest orgwarrior-test-view-all-day ()
+  ;; An event without a time is all_day; a timed one, a task on a plain
+  ;; date and a scheduled task aren't.
+  (orgwarrior-test-with-fixtures
+    (with-current-buffer (find-file-noselect (expand-file-name "calendar.org" dir))
+      (goto-char (point-max))
+      (insert (format-time-string "* Day off\n<%F %a>\n")
+              (format-time-string "* Holiday week\n<%F %a>--" (time-add nil -86400))
+              (format-time-string "<%F %a>\n" (time-add nil 86400)))
+      (insert (format-time-string "* TODO Return the books\n<%F %a>\n"))
+      (insert "* Every day\n<%%(diary-cyclic 1 1 1 2000)>\n")
+      (save-buffer))
+    (let* ((lines (orgwarrior-test-ok :op "view" :kind "today"))
+           (all-day (lambda (title)
+                      (plist-get (seq-find (lambda (l) (string-match-p title (plist-get l :text))) lines)
+                                 :all_day))))
+      (dolist (title '("Day off" "Holiday week" "Every day"))
+        (should (eq (funcall all-day title) t)))
+      (dolist (title '("Dentist appointment" "Return the books" "Call dentist"))
+        (should-not (funcall all-day title))))))
+
 (ert-deftest orgwarrior-test-view-spans ()
   (orgwarrior-test-with-fixtures
     (let* ((org-todo-keyword-faces '(("NEXT" . (:foreground "orange"))))
