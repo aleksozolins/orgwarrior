@@ -140,7 +140,9 @@ as usual.
   to org, from vdirsyncer or Google for example. Every change to it is
   refused, it's never offered as a place to refile or add to, and
   orgwarrior-web's calendar feed leaves it out, since your calendar app
-  already has the original.
+  already has the original. orgwarrior-web's
+  [docs/calendar.md](https://github.com/aleksozolins/orgwarrior-web/blob/main/docs/calendar.md#showing-another-calendar-in-your-agenda)
+  shows how to set one up.
 
 ## Configuration
 
