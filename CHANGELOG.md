@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.4.2 (2026-10-24)
+
+From a newcomer's run through the quick start:
+
+- **The quick start has a starter init file**: `org-agenda-files`,
+  `org-default-notes-file`, `org-refile-targets` and `org-log-done`, in
+  `~/.emacs.d/init.el`. It also says up front to install orgwarrior-web or
+  orgwarrior-mcp instead if you'll want them, since installing more than
+  one with pipx or uv fails.
+- **`--check` points at `~/.emacs.d/init.el`**, which Emacs always reads.
+  Pointing at `~/.config/emacs/init.el` led straight to the next problem,
+  since Emacs makes `~/.emacs.d` on its first start.
+- **`--check` warns when `org-log-done` is off**: without it, finished
+  tasks get no CLOSED time and `orgwarrior closed` stays empty.
+- When there's no file to add to, the message shows the setting to fix,
+  in the init file or in the config.
+- The examples no longer assume a NEXT keyword, and the README says that
+  a word that isn't one of your keywords stays part of the title.
+- The README spells out the uv commands and what refile does with a file's
+  name.
+
 ## 0.4.1 (2026-10-24)
 
 - The README's section on read-only files links to orgwarrior-web's guide
