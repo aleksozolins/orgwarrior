@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 (2026-10-24)
+
+- The README's section on read-only files links to orgwarrior-web's guide
+  for showing a Google or other calendar in your agenda.
+
 ## 0.4.0 (2026-10-24)
 
 Getting set up is the theme of this release: a new user should be able to
