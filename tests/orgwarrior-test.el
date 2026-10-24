@@ -1104,6 +1104,7 @@ tags read as org reads them; a star line inside a block stays its text."
       (set-file-modes (expand-file-name "projects.org" dir) #o444)
       (should (eq (plist-get (orgwarrior-test-ok :op "show" :id scaffold) :read_only) t))
       (should (eq (plist-get (orgwarrior-test-ok :op "show" :id batteries) :read_only) :false))
+      (should (equal (plist-get (orgwarrior-test-ok :op "show" :id batteries) :category) "Inbox"))
       (let ((lines (orgwarrior-test-ok :op "view" :kind "all"))
             (read-only (lambda (title lines)
                          (plist-get (seq-find (lambda (l) (string-match-p title (plist-get l :text))) lines)

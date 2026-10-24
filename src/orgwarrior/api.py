@@ -51,14 +51,15 @@ class Orgwarrior:
         return self._call(cli.view_request(command, self.config, width))
 
     def show(self, task_id: str, html: bool = False) -> dict:
-        """{"id", "file", "read_only", "path", "parents", "prev", "next", "heading", "title",
+        """{"id", "file", "read_only", "category", "path", "parents", "prev", "next", "heading", "title",
         "tags", "inherited", "scheduled", "deadline", "when", "when_line",
         "keyword", "done", "body",
         "lines", "links", "checkboxes", "notes", "priority", "from", "keywords",
         "keyword_keys", "done_keywords", "children", "clocks", "history",
         "log_drawers"}: `orgwarrior ID`'s
         content.  read_only: its file isn't writable, and every change
-        to it is refused.  parents are the headings above it, {"id", "title"},
+        to it is refused.  category as the agenda labels it (the file's
+        name, unless #+category: or a CATEGORY property says otherwise).  parents are the headings above it, {"id", "title"},
         outermost first; prev and next its siblings' titles, or null.  `tags` are the heading's own;
         `inherited` come from the file's #+filetags and parent headings;
         scheduled and deadline are org's timestamps ("<2026-10-16 Fri

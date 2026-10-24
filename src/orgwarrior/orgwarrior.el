@@ -909,6 +909,8 @@ exports it (`orgwarrior--html')."
               :file (orgwarrior--file-key (orgwarrior--buffer-file))
               ;; Its file isn't writable: every change is refused.
               :read_only (if (orgwarrior--read-only-p) t :false)
+              ;; As the agenda labels it: the file's name, #+category:, a CATEGORY property.
+              :category (or (org-get-category) :null)
               :path (vconcat (org-get-outline-path))
               :parents (orgwarrior--parents index)
               ;; The siblings around it, for a front end's Move buttons to name.
