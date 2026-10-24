@@ -76,6 +76,15 @@ def test_main_exit_codes(setup, capsys):
     setup.update(files=[], agenda_setting="unset")
     assert cli.main(["--check"]) == 1
     assert cli.main(["--check", "today"]) == 2
+    assert cli.main(["-s", "work", "--check"]) == 1
+
+
+def test_check_only_as_an_option(monkeypatch):
+    # Elsewhere on the line it's text, like a note's.
+    seen = []
+    monkeypatch.setattr(cli, "run", lambda command, config, socket: seen.append(command))
+    assert cli.main(["c1", "note", "ran", "--check", "twice"]) == 0
+    assert seen[0].args == ["ran", "--check", "twice"]
 
 
 def test_init_hidden_by_emacs_d(setup):

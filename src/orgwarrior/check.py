@@ -43,7 +43,7 @@ def findings(socket: str | None) -> list[tuple[str, str, list[str]]]:
                         "heading": config.add_heading if config else None}, socket, timeout=10)
     except OrgwarriorError as e:
         if "no Emacs daemon" not in str(e):
-            out.append((FAIL, "Emacs answered with an error", [str(e)]))
+            out.append((FAIL, "Emacs couldn't run the check", [str(e)]))
             return out
         out.append((FAIL, f"no Emacs server is running{f' on socket {socket!r}' if socket else ''}", [
             "Start one with `emacs --daemon` (or your system's Emacs service). If",
@@ -53,7 +53,7 @@ def findings(socket: str | None) -> list[tuple[str, str, list[str]]]:
         return out
 
     major = int(s["emacs"].split(".")[0])
-    how = "running as a daemon" if s["daemon"] else "running a server (not a daemon: close it and orgwarrior stops)"
+    how = "running as a daemon" if s["daemon"] else "running a server but not as a daemon, so orgwarrior stops working when you close it"
     out.append((OK if major >= 29 else FAIL, f"Emacs {s['emacs']} with Org {s['org']}, {how}",
                 ([f"socket: {s['socket']}"] if s["socket"] else [])
                 + ([] if major >= 29 else ["orgwarrior needs Emacs 29 or later."])))

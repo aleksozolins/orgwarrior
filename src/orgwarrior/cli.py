@@ -922,14 +922,15 @@ def run(command, config: configmod.Config, socket: str | None) -> None:
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     # Before the config loads: a config that doesn't is one of the things it reports.
-    if "--check" in argv:
+    # Only as an option, ahead of any command: `add buy milk --check` is a title.
+    lead = argv[2:] if argv[:1] in (["-s"], ["--socket"]) else argv
+    if lead[:1] == ["--check"]:
         from orgwarrior import check
-        rest = [a for a in argv if a != "--check"]
-        if rest and not (len(rest) == 2 and rest[0] in ("-s", "--socket")):
-            print("orgwarrior: --check takes only -s SOCKET", file=sys.stderr)
+        if len(lead) > 1:
+            print("orgwarrior: --check takes only -s SOCKET before it", file=sys.stderr)
             return 2
         painter = Painter(configmod.Config().colors if sys.stdout.isatty() and not os.environ.get("NO_COLOR") else None)
-        return check.report(rest[1] if rest else None, painter)
+        return check.report(argv[1] if lead is not argv else None, painter)
     try:
         config = configmod.load()
         command, socket = parse(argv, config)

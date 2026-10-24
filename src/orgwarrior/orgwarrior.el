@@ -58,7 +58,7 @@ The reply is {\"ok\": RESULT} or {\"error\": MESSAGE}."
   (let ((dirty (orgwarrior--dirty-buffers)))
     (orgwarrior--json
      (condition-case err
-;; A listed agenda file that doesn't exist is skipped, not asked about
+         ;; A listed agenda file that doesn't exist is skipped, not asked about
          ;; ("Remove from list?" can't be answered here); --check names it.
          (let ((inhibit-interaction t)
                (org-agenda-skip-unavailable-files t)
@@ -106,9 +106,10 @@ pinentry window waiting out the timeout.  Open, it's decrypted already."
                     (abbreviate-file-name f))))))
 
 (defun orgwarrior--setup (file heading)
-  "What `orgwarrior --check' looks at, FILE and HEADING being [add]'s: this Emacs, its init file, and the
-org settings orgwarrior relies on.  Before the encrypted-file check: an
-unopened .gpg agenda file is one of the things it reports."
+  "What `orgwarrior --check' looks at: this Emacs, its init file, and the
+org settings orgwarrior relies on, FILE and HEADING being [add]'s.  It
+runs before the encrypted-file check: an unopened .gpg agenda file is one
+of the things it reports."
   (let* ((setting org-agenda-files)
          ;; org-agenda-files keeps a listed file that doesn't exist; the agenda skips it.
          (files (seq-filter #'file-exists-p (ignore-errors (org-agenda-files t))))

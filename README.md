@@ -183,8 +183,8 @@ agenda files, where `add` writes and your config, and says what to fix.
   and orgwarrior can't type its passphrase. Open it in Emacs once (it stays
   decrypted while Emacs runs), or take it out of `org-agenda-files`.
 - **"Emacs tried to ask a question"**: something in your Emacs, such as a
-  hook, wanted to ask something. orgwarrior can't answer, so it stops and
-  tells you what the question was.
+  hook, wanted to ask something. orgwarrior can't answer, so it stops. Do
+  the same thing in Emacs itself to see what it asks.
 - **Colors look wrong**: `color = "never"` or `NO_COLOR=1` turns them off,
   and `[colors]` changes any of them.
 
