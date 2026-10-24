@@ -109,8 +109,9 @@ It prints the new ID and heading; follow-ups use that ID.
 ## If it fails
 
 orgwarrior's message says what's wrong (a bad date, an unknown keyword,
-unsaved changes in Emacs, which it won't save over): fix and rerun, or
-ask. If no Emacs daemon answers, say so: the user starts one.
+unsaved changes in Emacs, which it won't save over; a read-only file,
+a copy of a calendar kept elsewhere, which it never changes): fix and
+rerun, or ask. If no Emacs daemon answers, say so: the user starts one.
 
 **When in doubt about which task, tags, dates or anything else, ask
 rather than guess.**

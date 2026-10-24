@@ -124,6 +124,11 @@ Emacs.
   front.
 - **Safety**: if a file has unsaved changes in Emacs, orgwarrior refuses
   rather than save someone's half-finished edit. `kill` asks first.
+- **Read-only files**: a file that isn't writable (`chmod a-w`), such as
+  a calendar a script exports to org from vdirsyncer or Google, is shown
+  everywhere and changed nowhere: every change is refused, it's never a
+  place to refile or add to, and orgwarrior-web's calendar feed leaves it
+  out (it's another calendar's copy already).
 
 ## Configuration
 

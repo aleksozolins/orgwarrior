@@ -47,6 +47,13 @@ would drift from org's real agenda logic).
   saved. orgwarrior saves just the files it changed (Syncthing carries
   them). An unmodified buffer older than its file (Syncthing wrote it) is
   reverted first.
+- **Read-only files**: one that isn't writable (`orgwarrior--read-only-p`,
+  the file's mode: a calendar a script exports and would overwrite) is
+  refused by the same check (`orgwarrior--check-writable`, every writer,
+  before anything changes), left out of the refile targets and add
+  places, and marked `read_only` in show, view lines, outlines and
+  `calendar` (the feed leaves it out). The mode, not a config list: Emacs
+  itself honors it, and it lives with the file the script writes.
 - No daemon: one line ("no Emacs daemon running on socket … start one
   with `emacs --daemon`"), exit 1. `ALTERNATE_EDITOR` is stripped for
   `emacsclient` (set to an editor like nvim, with no daemon it launches and hangs).

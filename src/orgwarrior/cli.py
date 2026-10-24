@@ -644,7 +644,8 @@ def print_show(task: dict, painter: Painter = Painter(None), drawers: bool = Fal
     notes, newest first.  DRAWERS: unfolded, and the notes only there."""
     where = " › ".join([task["file"], *task["path"]])
     from_ = f"  {painter.wrap('from ' + task['from'], 'extra')}" if task.get("from") else ""
-    print(f"{painter.wrap(task['id'], 'id')}  {painter.wrap(where, 'header')}{from_}")
+    read_only = f"  {painter.wrap('read only', 'extra')}" if task.get("read_only") else ""
+    print(f"{painter.wrap(task['id'], 'id')}  {painter.wrap(where, 'header')}{from_}{read_only}")
     lines, i = task["lines"], 0
     while i < len(lines):
         line = lines[i]

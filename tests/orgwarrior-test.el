@@ -1095,6 +1095,42 @@ tags read as org reads them; a star line inside a block stays its text."
       (should (string-match-p "juggle :someday:\nSCHEDULED: <2026-12-25 Fri>\n<2026-12-26 Sat>\n"
                               (orgwarrior-test-file dir "tasks.org"))))))
 
+;; A file that isn't writable: a calendar a script exports to org.
+(ert-deftest orgwarrior-test-read-only-file ()
+  (orgwarrior-test-with-fixtures
+    (let* ((before (orgwarrior-test-file dir "projects.org"))
+           (scaffold (orgwarrior-test-id "Scaffold the package"))
+           (batteries (orgwarrior-test-id "Buy batteries")))
+      (set-file-modes (expand-file-name "projects.org" dir) #o444)
+      (should (eq (plist-get (orgwarrior-test-ok :op "show" :id scaffold) :read_only) t))
+      (should (eq (plist-get (orgwarrior-test-ok :op "show" :id batteries) :read_only) :false))
+      (let ((lines (orgwarrior-test-ok :op "view" :kind "all"))
+            (read-only (lambda (title lines)
+                         (plist-get (seq-find (lambda (l) (string-match-p title (plist-get l :text))) lines)
+                                    :read_only))))
+        (should (eq (funcall read-only "Scaffold" lines) t))
+        (should-not (funcall read-only "Buy batteries" lines)))
+      (should (eq (plist-get (car (plist-get (orgwarrior-test-ok :op "outline" :file "projects.org") :children))
+                             :read_only)
+                  t))
+      (should (eq (plist-get (seq-find (lambda (e) (equal (plist-get e :title) "Scaffold the package"))
+                                       (orgwarrior-test-ok :op "calendar" :days 30))
+                             :read_only)
+                  t))
+      ;; Every change refused, before anything changes.
+      (dolist (req `((:op "act" :ids ,(vector scaffold) :verb "done")
+                     (:op "act" :ids ,(vector batteries scaffold) :verb "sched" :args ["fri"])
+                     (:op "act" :ids ,(vector scaffold) :verb "refile" :args ["tasks.org"])
+                     (:op "set-entry" :id ,scaffold :text "x" :old "")
+                     (:op "clock-in" :id ,scaffold)
+                     (:op "add" :text "New" :to "projects.org")))
+        (should (string-match-p "projects.org is read only" (apply #'orgwarrior-test-error req))))
+      (should (equal (orgwarrior-test-file dir "projects.org") before))
+      (should-not (string-match-p "SCHEDULED" (orgwarrior-test-file dir "inbox.org")))
+      ;; Nothing goes there either.
+      (should (equal (orgwarrior-test-ok :op "refile-targets" :ids (vector batteries))
+                     '("inbox.org" "tasks.org" "tasks.org › Tasks"))))))
+
 (ert-deftest orgwarrior-test-reschedule-logs-without-prompting ()
   (orgwarrior-test-with-fixtures
     (orgwarrior-test-ok :op "act" :ids (vector (orgwarrior-test-id "Call dentist")) :verb "sched" :args ["+3d"])

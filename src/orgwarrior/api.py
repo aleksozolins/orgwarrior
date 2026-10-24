@@ -38,7 +38,8 @@ class Orgwarrior:
         CLI would take as a task ID or a command (`bed`, `add`) is a text
         search here: a front end's query box only shows views.  WIDTH is
         what org right-aligns tags to with tags = "right".  ARCHIVE (or
-        --archive in QUERY) takes in the archive files too."""
+        --archive in QUERY) takes in the archive files too.  A line of a
+        task in a read-only file (see show) has "read_only": true."""
         try:
             command, _ = cli.parse(query.split(), self.config)
         except cli.UsageError:
@@ -50,13 +51,14 @@ class Orgwarrior:
         return self._call(cli.view_request(command, self.config, width))
 
     def show(self, task_id: str, html: bool = False) -> dict:
-        """{"id", "file", "path", "parents", "prev", "next", "heading", "title",
+        """{"id", "file", "read_only", "path", "parents", "prev", "next", "heading", "title",
         "tags", "inherited", "scheduled", "deadline", "when", "when_line",
         "keyword", "done", "body",
         "lines", "links", "checkboxes", "notes", "priority", "from", "keywords",
         "keyword_keys", "done_keywords", "children", "clocks", "history",
         "log_drawers"}: `orgwarrior ID`'s
-        content.  parents are the headings above it, {"id", "title"},
+        content.  read_only: its file isn't writable, and every change
+        to it is refused.  parents are the headings above it, {"id", "title"},
         outermost first; prev and next its siblings' titles, or null.  `tags` are the heading's own;
         `inherited` come from the file's #+filetags and parent headings;
         scheduled and deadline are org's timestamps ("<2026-10-16 Fri
@@ -123,7 +125,8 @@ class Orgwarrior:
         """Every dated entry, for a calendar: {"id" (the whole hash, which
         any ID taking command takes), "title" (as the agenda shows it, no
         keyword, tags or timestamps), "keyword", "done", "habit", "tags",
-        "inherited" (as show has them), "category", "stamps"}.  A stamp is {"kind":
+        "inherited" (as show has them), "category", "read_only" (as show
+        has it: likely a copy of another calendar), "stamps"}.  A stamp is {"kind":
         "scheduled", "deadline" or "timestamp", "start", "start_time",
         "end", "end_time", "repeat", "warning"}, dates "2026-10-14",
         times "14:00" or null, end being the range's end or the start
@@ -151,7 +154,8 @@ class Orgwarrior:
         """{"file", "children"}: FILE's (an agenda file as show names it,
         "projects.org") top-level headings, in file order, each as show's
         children are, with its own "children" the same way, all the way
-        down (a foldable tree)."""
+        down (a foldable tree), "read_only": true on each in a read-only
+        file."""
         return self._call({"op": "outline", "file": file})
 
     def reorder(self, ids: list[str], parent: str | None = None, file: str | None = None) -> list[dict]:

@@ -188,7 +188,22 @@ Relative, so the same task has the same ID on every machine."
 (defun orgwarrior--buffer-file ()
   (or buffer-file-name (buffer-file-name (buffer-base-buffer))))
 
-(defun orgwarrior--check-unmodified (buf)
+(defun orgwarrior--read-only-p (&optional buf)
+  "Non-nil if BUF's (default the current buffer's) file isn't writable: a
+copy of something else, such as a calendar a script exports to org, that
+the next export would overwrite.  Shown everywhere, changed nowhere."
+  (let ((file (buffer-file-name (orgwarrior--base-buffer buf))))
+    (and file (not (file-writable-p file)))))
+
+(defun orgwarrior--base-buffer (buf)
+  (let ((buf (or buf (current-buffer)))) (or (buffer-base-buffer buf) buf)))
+
+(defun orgwarrior--check-writable (buf)
+  "Refuse a change to BUF before anything changes: its file read only
+\(`orgwarrior--read-only-p'), or the user's unsaved changes in Emacs."
+  (when (orgwarrior--read-only-p buf)
+    (user-error "%s is read only (its file isn't writable)"
+                (orgwarrior--file-key (buffer-file-name (orgwarrior--base-buffer buf)))))
   (when (buffer-modified-p buf)
     (user-error "%s has unsaved changes in Emacs; save or revert it first"
                 (buffer-name buf))))
@@ -670,7 +685,9 @@ is a tag match."
                              (list :text (substring-no-properties line)
                                    :id (or (and marker (orgwarrior--marker-id index marker)) :null)
                                    :spans (orgwarrior--line-spans line))
-                             (when graph (list :habit (orgwarrior--habit graph)))))
+                             (when graph (list :habit (orgwarrior--habit graph)))
+                             (when (and marker (orgwarrior--read-only-p (marker-buffer marker)))
+                               (list :read_only t))))
                           (when-let* (((get-text-property bol 'org-date-line))
                                       (day (get-text-property bol 'day)))
                             (pcase-let ((`(,m ,d ,y) (calendar-gregorian-from-absolute day)))
@@ -890,6 +907,8 @@ exports it (`orgwarrior--html')."
         (append
          (list :id (orgwarrior--id index (orgwarrior-entry-hash entry))
               :file (orgwarrior--file-key (orgwarrior--buffer-file))
+              ;; Its file isn't writable: every change is refused.
+              :read_only (if (orgwarrior--read-only-p) t :false)
               :path (vconcat (org-get-outline-path))
               :parents (orgwarrior--parents index)
               ;; The siblings around it, for a front end's Move buttons to name.
@@ -1101,7 +1120,7 @@ REMOVE it.  OLD, the item as shown (its :raw), must still match.  Its
 first line stays as org wrote it.  The task's history after."
   (let* ((index (orgwarrior--index))
          (entry (orgwarrior--resolve index id)))
-    (orgwarrior--check-unmodified (orgwarrior-entry-buffer entry))
+    (orgwarrior--check-writable (orgwarrior-entry-buffer entry))
     (orgwarrior--at entry
       (pcase-let* ((`(,start . ,end) (orgwarrior--entry-region))
                    (items (orgwarrior--log-items start end))
@@ -1164,7 +1183,7 @@ gave it (:body) and must still match: an entry changed underneath
 children, after the ones it has (`orgwarrior--add-outline')."
   (let* ((index (orgwarrior--index))
          (entry (orgwarrior--resolve index id)))
-    (orgwarrior--check-unmodified (orgwarrior-entry-buffer entry))
+    (orgwarrior--check-writable (orgwarrior-entry-buffer entry))
     (orgwarrior--at entry
       (pcase-let* ((`(,body . ,outline) (orgwarrior--split-outline text))
                    (new (orgwarrior--entry-text body))
@@ -1304,7 +1323,7 @@ match: a list changed underneath (Syncthing) is refused, not guessed at.
 On the command line, `edit' gives the context a list of boxes lacks."
   (let* ((index (orgwarrior--index))
          (entry (orgwarrior--resolve index id)))
-    (orgwarrior--check-unmodified (orgwarrior-entry-buffer entry))
+    (orgwarrior--check-writable (orgwarrior-entry-buffer entry))
     (orgwarrior--at entry
       (let* ((items (orgwarrior--checkbox-items (point) (save-excursion (outline-next-heading) (point))))
              (item (and (integerp n) (<= 1 n (length items)) (nth (1- n) items))))
@@ -1376,6 +1395,7 @@ keyword and tags (priority and cookies kept).  DEEP: each with its own
                                 :heading heading
                                 :text (orgwarrior--shown (org-get-heading t t nil nil))
                                 :tags (vconcat (org-get-tags nil t)))
+                          (when (orgwarrior--read-only-p) (list :read_only t))
                           (orgwarrior--keyword-props)
                           (if deep
                               (list :children (save-excursion
@@ -1430,7 +1450,7 @@ they were."
          (buf (if parent (orgwarrior-entry-buffer parent)
                 (orgwarrior--file-buffer (orgwarrior--agenda-file (or file (user-error "reorder needs a parent or a file"))))))
          (wanted (mapcar (lambda (id) (orgwarrior-entry-hash (orgwarrior--resolve index id))) ids)))
-    (orgwarrior--check-unmodified buf)
+    (orgwarrior--check-writable buf)
     (with-current-buffer buf
       (org-with-wide-buffer
        (if parent (goto-char (orgwarrior-entry-pos parent)))
@@ -1493,6 +1513,8 @@ agenda leaves them out."
                          :inherited (orgwarrior--inherited-tags)
                          :category (or (org-get-category) :null)
                          :habit (if (and (fboundp 'org-is-habit-p) (org-is-habit-p)) t :false)
+                         ;; A copy of another calendar, likely: a feed may leave it out.
+                         :read_only (if (orgwarrior--read-only-p) t :false)
                          :stamps (vconcat stamps))
                    (orgwarrior--keyword-props))
                   entries)))))
@@ -1634,7 +1656,7 @@ is the title of the heading it's now under, null at the top level."
   (when (cdr ids) (user-error "%s takes one task" verb))
   (let* ((index (orgwarrior--index))
          (entry (orgwarrior--resolve index (car ids))))
-    (orgwarrior--check-unmodified (orgwarrior-entry-buffer entry))
+    (orgwarrior--check-writable (orgwarrior-entry-buffer entry))
     (orgwarrior--at entry
       (let ((old (orgwarrior--parent-marker)))
         (pcase verb
@@ -1662,7 +1684,7 @@ is the title of the heading it's now under, null at the top level."
   (let* ((index (orgwarrior--index))
          (entries (orgwarrior--entries index ids))
          (buffers (delete-dups (mapcar #'orgwarrior-entry-buffer entries))))
-    (mapc #'orgwarrior--check-unmodified buffers)
+    (mapc #'orgwarrior--check-writable buffers)
     (let ((planned (mapcar (lambda (e)
                              (cons e (orgwarrior--at e (orgwarrior--action verb args))))
                            entries))
@@ -2137,7 +2159,7 @@ queues; return its data, :removed when org removed a zero-time line."
                                      (mapcar (lambda (c) (marker-buffer (car c))) open)))))
     (unwind-protect
         (progn
-          (mapc #'orgwarrior--check-unmodified buffers)
+          (mapc #'orgwarrior--check-writable buffers)
           (when-let* ((here (seq-find (lambda (c) (orgwarrior--clock-on-p c entry)) open)))
             (user-error "Already clocked in on it, since %s" (orgwarrior--clock-hm (cdr here))))
           (when-let* ((later (and start (seq-find (lambda (c) (time-less-p start (cdr c))) open))))
@@ -2167,7 +2189,7 @@ running.  The clock's data, with its end."
         (let* ((clock (orgwarrior--running-clock index id open))
                (buf (marker-buffer (car clock)))
                (at (orgwarrior--clock-time time nil t)))
-          (orgwarrior--check-unmodified buf)
+          (orgwarrior--check-writable buf)
           (when (and at (time-less-p at (cdr clock)))
             (user-error "%s is before it started (%s)" (string-trim time) (orgwarrior--clock-hm (cdr clock))))
           (prog1 (orgwarrior--close-clock index clock at)
@@ -2182,7 +2204,7 @@ running.  The clock's data, with its end."
     (unwind-protect
         (let* ((clock (orgwarrior--running-clock index id open))
                (data (orgwarrior--clock-data index clock)))
-          (orgwarrior--check-unmodified (marker-buffer (car clock)))
+          (orgwarrior--check-writable (marker-buffer (car clock)))
           (org-with-clock-position clock
             (when (and (org-clocking-p) (eq (org-clocking-buffer) (current-buffer))
                        (= (line-beginning-position)
@@ -2246,7 +2268,7 @@ OLD, the line as shown, must still match.  Org recomputes the total, as
 after S-up on a CLOCK line.  The task's clocks after."
   (let* ((index (orgwarrior--clock-index))
          (entry (orgwarrior--resolve index id)))
-    (orgwarrior--check-unmodified (orgwarrior-entry-buffer entry))
+    (orgwarrior--check-writable (orgwarrior-entry-buffer entry))
     (orgwarrior--at entry
       (let* ((clocks (orgwarrior--entry-clocks))
              (clock (or (and (integerp n) (> n 0) (nth (1- n) clocks))
@@ -2335,7 +2357,7 @@ clocks after."
       (when (time-less-p nil e)
         (user-error "It would end (%s) later than now: clock in for time still to come"
                     (orgwarrior--clock-iso e)))
-      (orgwarrior--check-unmodified (orgwarrior-entry-buffer entry))
+      (orgwarrior--check-writable (orgwarrior-entry-buffer entry))
       (orgwarrior--at entry
         (org-clock-find-position nil)
         ;; As org-clock-in inserts its line.
@@ -2532,8 +2554,9 @@ null}."
 entry may be a buffer, for adding to it), as
 plists, each file's top level first: org offers it only with
 `org-refile-use-outline-path' set to `file', and without it a heading
-can't be moved up to the top level.  :key is (BUFFER . POS), comparable
-with `orgwarrior--parent-key'."
+can't be moved up to the top level.  Read-only files are left out
+\(`orgwarrior--read-only-p'): nothing can go there.  :key is (BUFFER . POS),
+comparable with `orgwarrior--parent-key'."
   (let (raw seen)
     (dolist (e entries)
       (orgwarrior--in e
@@ -2545,7 +2568,8 @@ with `orgwarrior--parent-key'."
                 (push key seen)
                 (push tgt raw)))))))
     (setq raw (nreverse raw))
-    (let ((files (orgwarrior--refile-files entries)))
+    (let ((files (seq-filter #'file-writable-p (orgwarrior--refile-files entries))))
+      (setq raw (seq-filter (lambda (tg) (file-writable-p (nth 1 tg))) raw))
       (mapcar #'orgwarrior--target
               (append (mapcar (lambda (f) (list nil f nil nil)) files)
                       ;; Org's own file targets, for files that list missed.
@@ -2606,7 +2630,7 @@ return it as a target.  Refused if one by that title is there already."
           (pos (cdr (plist-get place :key))))
       (when (string-empty-p title) (user-error "The new heading needs a title"))
       (when (string-match-p "\n" title) (user-error "A heading is one line"))
-      (orgwarrior--check-unmodified buf)
+      (orgwarrior--check-writable buf)
       (with-current-buffer buf
         (orgwarrior--check-event-title (car (split-string title)))
         (when (string-match-p "\\(?:\\`\\|[ \t]\\):[[:alnum:]_@#%:]+:\\'" title)
@@ -2708,7 +2732,7 @@ ARGS names (one of the refile targets), and refiles into it."
          (moved nil)
          (markers nil)
          (parents nil))
-    (mapc #'orgwarrior--check-unmodified buffers)
+    (mapc #'orgwarrior--check-writable buffers)
     ;; Positions shift as entries leave or land in the same buffer.
     (when (nth 3 rfloc)
       (with-current-buffer (plist-get target :buffer)
@@ -2799,7 +2823,7 @@ changes with the title, so the result carries the old one too."
          (entry (orgwarrior--resolve index (car ids)))
          (old (orgwarrior--id index (orgwarrior-entry-hash entry))))
     (when (string-empty-p title) (user-error "rename needs the new title"))
-    (orgwarrior--check-unmodified (orgwarrior-entry-buffer entry))
+    (orgwarrior--check-writable (orgwarrior-entry-buffer entry))
     (orgwarrior--at entry
       ;; Org would read these as a keyword or tags, not as part of the title.
       (when (member (car (split-string title)) org-todo-keywords-1)
@@ -2832,7 +2856,7 @@ confirms first.  An ID inside another ID's subtree goes with it."
          (entries (orgwarrior--entries index ids))
          (buffers (delete-dups (mapcar #'orgwarrior-entry-buffer entries)))
          (killed nil))
-    (mapc #'orgwarrior--check-unmodified buffers)
+    (mapc #'orgwarrior--check-writable buffers)
     (let* ((ranges (mapcar (lambda (e)
                              (orgwarrior--at e
                                (list e (point)
@@ -2889,7 +2913,7 @@ another ID's subtree goes with it."
          (sources (delete-dups (mapcar #'orgwarrior-entry-buffer entries)))
          (markers nil)
          (parents nil))
-    (mapc #'orgwarrior--check-unmodified
+    (mapc #'orgwarrior--check-writable
           (append sources (delq nil (mapcar #'get-file-buffer files))))
     ;; Positions shift as earlier entries in the same buffer leave.
     (dolist (r outer)
@@ -2937,7 +2961,7 @@ out of the file's own buffer, which other frames on the daemon may show;
 the edits land in that buffer all the same."
   (let* ((entry (orgwarrior--resolve (orgwarrior--index) id))
          (base (orgwarrior-entry-buffer entry)))
-    (orgwarrior--check-unmodified base)
+    (orgwarrior--check-writable base)
     (orgwarrior--at entry
       (let ((pos (point))
             (buf (make-indirect-buffer
@@ -3048,7 +3072,7 @@ in FIELDS)."
                  (t (let ((tg (orgwarrior--add-place file heading)))
                       (plist-get tg :key)))))
          (buf (car place)))
-    (orgwarrior--check-unmodified buf)
+    (orgwarrior--check-writable buf)
     (with-current-buffer buf
       (let ((entry (if fields (orgwarrior--add-fields fields event) (orgwarrior--parse-add text event)))
             (level 1))

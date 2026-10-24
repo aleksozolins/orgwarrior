@@ -105,7 +105,12 @@ Emacs shows them; orgwarrior ID open lists and opens them (help open).
 Several IDs show one after another.
 
   orgwarrior ID --drawers   the drawers unfolded, notes and all, as in the
-                            file""",
+                            file
+
+A task in a file that isn't writable (chmod a-w: say a calendar a script
+exports to org, which the next export would overwrite) is read only, and
+its location line says so: shown everywhere, every change refused, never
+a place to refile or add to.""",
 
     "priority": """\
 orgwarrior ID... pri A
@@ -459,7 +464,8 @@ Roles:
 ALIASES = {"sched": "dates", "due": "dates", "when": "dates", "date": "dates", "tag": "tags", "event": "add",
            "view": "views", "note": "notes", "pri": "priority", "keyword": "keywords",
            "color": "colors", "search": "views", "down": "up", "promote": "up", "demote": "up",
-           "clocks": "clock", "report": "clocked", "reports": "clocked", "prop": "properties", "effort": "properties", "property": "properties"}
+           "clocks": "clock", "report": "clocked", "reports": "clocked", "prop": "properties", "effort": "properties", "property": "properties",
+           "read-only": "show", "readonly": "show"}
 
 
 def topic(name: str, keywords: list[str] = ()) -> str | None:
