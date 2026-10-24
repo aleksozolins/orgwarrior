@@ -2,20 +2,63 @@
 
 ## 0.4.0 (2026-10-24)
 
-- **`orgwarrior --check`** checks your setup and says what to fix: whether
-  Emacs's server is running (and its socket), which init file Emacs
-  loaded, your agenda files, where `add` writes, your refile targets and
-  your config. It catches the usual first-run traps, like an init file in
-  `~/.config/emacs` that Emacs ignores because `~/.emacs.d` exists.
-- An empty view with no agenda files now says why, instead of showing
-  nothing.
-- A path in `org-agenda-files` that doesn't exist is skipped, where before
-  org stopped to ask about it and every command failed.
-- **Every error message rewritten** to say plainly what went wrong and
-  what to do, as whole sentences. "Can't parse date: soon" is now "Can't
-  read soon as a date. Try fri, +2d, 2026-10-15 or fri 14:00".
-- The README explains running Emacs's server on a Mac, or with
+Getting set up is the theme of this release: a new user should be able to
+go from install to a working agenda without guessing.
+
+### Checking your setup
+
+- **`orgwarrior --check`** looks at everything orgwarrior depends on and
+  says what to fix. It reports:
+  - your config file, and any problem in it (it still runs when the config
+    doesn't load);
+  - `emacsclient`, and whether an Emacs server is running, with the
+    socket's full path (handy for a desktop app's MCP config);
+  - the Emacs and Org versions, and whether Emacs is a daemon or an app
+    running `(server-start)`, which stops when you close it;
+  - which init file Emacs loaded. It catches the common trap where Emacs
+    ignores `~/.config/emacs/init.el` because `~/.emacs.d` exists (a
+    native-compiling Emacs makes that folder on its first start);
+  - your agenda files, any that are read only, encrypted and not open, or
+    have unsaved changes, and any path in `org-agenda-files` that doesn't
+    exist;
+  - where `add` writes, and whether that file and heading exist;
+  - whether `org-refile-targets` is set, with a line to add if it isn't;
+  - whether each `[views]` entry names an agenda command Emacs has.
+
+  It exits 1 if anything has to be fixed. It's an option rather than a
+  command, so `orgwarrior doctor` is still a search for "doctor".
+- **An empty view says why.** When there are no agenda files Emacs can
+  find, a view says so and points to `--check`, instead of showing a bare
+  date.
+- **A missing agenda file no longer breaks everything.** A path in
+  `org-agenda-files` that doesn't exist used to make org stop and ask
+  "Remove from list?", which orgwarrior can't answer, so every command
+  failed. It's now skipped (`--check` names it).
+
+### Clearer messages
+
+- **Every error message is rewritten** to say what went wrong and what to
+  do, in whole sentences. Some examples:
+  - "Can't parse date: soon" is now "Can't read soon as a date. Try fri,
+    +2d, 2026-10-15 or fri 14:00".
+  - "Unknown verb: frob" is now "There's no command frob", followed by your
+    keywords.
+  - "no Emacs daemon running" now also mentions `(server-start)` and
+    `--check`.
+  - Config mistakes say which table has no such key, and point to
+    `orgwarrior help config`.
+- A timeout says Emacs may be waiting for you to answer something in
+  Emacs, and "Emacs tried to prompt" now reads "Emacs tried to ask a
+  question" and says how to find out what.
+
+### Docs
+
+- The README explains running Emacs's server three ways: `emacs --daemon`
+  or your system's service, `brew services start emacs` on a Mac, or
   `(server-start)` if you keep Emacs open as an app.
+- The quick start begins with `orgwarrior --check`, and so does
+  Troubleshooting.
+- The help, man page and Claude skill mention `--check`.
 
 ## 0.3.1 (2026-10-24)
 
