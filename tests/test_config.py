@@ -34,18 +34,18 @@ def test_full_config(tmp_path):
 
 
 @pytest.mark.parametrize("text, message", [
-    ('bogus = 1', "unknown key"),
+    ('bogus = 1', "no key"),
     ('default_view = 3', "must be a string"),
-    ('inbox = "~/org/inbox.org"', "unknown key 'inbox'"),
+    ('inbox = "~/org/inbox.org"', "no key 'inbox'"),
     ('time_grid = "yes"', "true or false"),
     ('color = "sometimes"', "color must be"),
-    ('[colors]\ntodo = "chartreuse"', "use \"none\", #rrggbb, on-#rrggbb or words"),
+    ('[colors]\ntodo = "chartreuse"', "isn't a color"),
     ('[colors]\ntodo = "#ff00"', "#rrggbb"),
     ('tags = "left"', "tags must be"),
     ('[colors]\nnext = "red"', "uppercase TODO keyword"),
-    ('[add]\nfolder = "x"', "unknown key \\[add\\]"),
+    ('[add]\nfolder = "x"', "\\[add\\] has no key"),
     ('[add]\ncaptured = 1', "true or false"),
-    ('[add.event]\nfolder = "x"', "unknown key \\[add.event\\]"),
+    ('[add.event]\nfolder = "x"', "\\[add.event\\] has no key"),
     ('[refile]\nnew_in = 1', "\\[refile\\] new_in must be a string"),
     ('[views]\nx = 1', "views"),
     ('web = 1', "web must be a table"),

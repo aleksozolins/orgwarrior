@@ -270,7 +270,7 @@ def test_open_links(links, capsys, monkeypatch):
     cli.open_links("c1", [], None, painter)
     assert opened == ["https://a.example"] * 2
     assert capsys.readouterr().out == "[1] A  https://a.example\n"
-    with pytest.raises(UsageError, match="no link 3; there is 1"):
+    with pytest.raises(UsageError, match="no link 3. There is 1"):
         cli.open_links("c1", ["3"], None, painter)
 
 

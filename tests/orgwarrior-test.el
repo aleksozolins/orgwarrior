@@ -260,7 +260,7 @@ later one its own, numbered, so each has an ID and acts alone."
     (let ((dates (delq nil (mapcar (lambda (l) (plist-get l :date))
                                    (orgwarrior-test-ok :op "view" :kind "week" :arg "2030-01-15")))))
       (should (equal (list (car dates) (car (last dates)) (length dates)) '("2030-01-15" "2030-01-21" 7))))
-    (should (string-match-p "Can't parse date"
+    (should (string-match-p "as a date"
                             (orgwarrior-test-error :op "view" :kind "week" :arg "fridge")))))
 
 (ert-deftest orgwarrior-test-view-date ()
@@ -298,7 +298,7 @@ later one its own, numbered, so each has an ID and acts alone."
       ;; Not a weekday: fixture timestamps, relative to today, have those.
       (should-not (ids-of "search" "tomorrow"))
       (should (ids-of "search" "batt"))
-      (should (string-match-p "Search for what"
+      (should (string-match-p "needs some words"
                               (orgwarrior-test-error :op "view" :kind "search" :arg " "))))))
 
 (ert-deftest orgwarrior-test-view-states ()
@@ -806,7 +806,7 @@ tags read as org reads them; a star line inside a block stays its text."
       ;; The text must match; there's no check without it, and no check verb.
       (dolist (bad '((:n 1 :text "something else") (:n 1) (:n 9 :text "x")))
         (should (string-match-p "changed" (apply #'orgwarrior-test-error :op "check" :id id bad))))
-      (should (string-match-p "Unknown verb" (orgwarrior-test-error :op "act" :ids (vector id) :verb "check"
+      (should (string-match-p "There's no command" (orgwarrior-test-error :op "act" :ids (vector id) :verb "check"
                                                                :args ["1"]))))))
 
 
@@ -878,7 +878,7 @@ tags read as org reads them; a star line inside a block stays its text."
                                 :heading)
                      "Orgwarrior [1/3]"))
       (should (string-match-p "^\\* Orgwarrior \\[1/3\\]$" (orgwarrior-test-file dir "projects.org")))
-      (should (string-match-p "takes no arguments"
+      (should (string-match-p "takes nothing after it"
                               (orgwarrior-test-error :op "act" :ids (vector orgw) :verb "nokeyword" :args ["x"]))))))
 
 (ert-deftest orgwarrior-test-note-verb ()
@@ -976,7 +976,7 @@ tags read as org reads them; a star line inside a block stays its text."
 
 (ert-deftest orgwarrior-test-unknown-verb ()
   (orgwarrior-test-with-fixtures
-    (should (string-match-p "Unknown verb"
+    (should (string-match-p "There's no command"
                             (orgwarrior-test-error :op "act" :ids (vector (orgwarrior-test-id "Pay rent"))
                                               :verb "frobnicate" :args [])))))
 
@@ -1034,11 +1034,11 @@ tags read as org reads them; a star line inside a block stays its text."
       (orgwarrior-test-ok :op "act" :ids (vector id) :verb "sched" :args ["none"])
       (should-not (string-match-p "juggle :someday:\nSCHEDULED"
                                   (orgwarrior-test-file dir "tasks.org")))
-      (should (string-match-p "Can't parse date"
+      (should (string-match-p "as a date"
                               (orgwarrior-test-error :op "act" :ids (vector id)
                                                 :verb "sched" :args ["fridge"])))
       ;; Org would read only the fri, the rest skipped.
-      (should (string-match-p "Can't parse date"
+      (should (string-match-p "as a date"
                               (orgwarrior-test-error :op "act" :ids (vector id)
                                                 :verb "sched" :args ["dentist fri"]))))))
 
@@ -1106,7 +1106,7 @@ tags read as org reads them; a star line inside a block stays its text."
       ;; None there: added under the drawers, the text's own left alone.
       (should (string-match-p ":END:\n\n<2027-01-02 Sat>\nAt Tony's\n<2026-12-31 Thu> too"
                               (funcall when "2027-01-02")))
-      (should (string-match-p "Can't parse date"
+      (should (string-match-p "as a date"
                               (orgwarrior-test-error :op "act" :ids (vector id) :verb "when" :args ["fridge"])))
       (should (orgwarrior-test-error :op "act" :ids (vector id) :verb "when" :args [])))
     ;; Under the planning line.
@@ -1255,7 +1255,7 @@ tags read as org reads them; a star line inside a block stays its text."
         (should (equal (plist-get result :already) "tasks.org › Tasks"))
         (should (equal (plist-get result :id) (aref id 0)))
         (should-not (plist-get result :old)))
-      (should (string-match-p "takes no note"
+      (should (string-match-p "doesn't take a note"
                               (orgwarrior-test-error :op "act" :ids id :verb "refile" :args ["warr"]
                                                 :note "x"))))))
 
@@ -1535,7 +1535,7 @@ tags read as org reads them; a star line inside a block stays its text."
 (ert-deftest orgwarrior-test-kill-guards ()
   (orgwarrior-test-with-fixtures
     (let ((id (vector (orgwarrior-test-id "Learn to juggle"))))
-      (should (string-match-p "takes no arguments"
+      (should (string-match-p "takes nothing after it"
                               (orgwarrior-test-error :op "act" :verb "kill" :ids id :args ["x"])))
       (with-current-buffer (find-file-noselect (expand-file-name "tasks.org" dir))
         (goto-char (point-max))
@@ -1585,7 +1585,7 @@ tags read as org reads them; a star line inside a block stays its text."
         (should (string-match-p "No task" (orgwarrior-test-error :op "act" :ids (vector (plist-get line :id))
                                                                  :verb "todo" :args []))))
       (should-not (funcall line-of (orgwarrior-test-ok :op "view" :kind "closed" :arg "lastyear")))
-      (should (string-match-p "Not a span" (orgwarrior-test-error :op "view" :kind "closed" :arg "soon")))
+      (should (string-match-p "as a span" (orgwarrior-test-error :op "view" :kind "closed" :arg "soon")))
       ;; A search takes in the archives only when asked.
       (should-not (funcall line-of (orgwarrior-test-ok :op "view" :kind "search" :arg "juggle")))
       (should (plist-get (funcall line-of (orgwarrior-test-ok :op "view" :kind "search" :arg "juggle"
@@ -1613,7 +1613,7 @@ tags read as org reads them; a star line inside a block stays its text."
 (ert-deftest orgwarrior-test-archive-guards ()
   (orgwarrior-test-with-fixtures
     (let ((id (vector (orgwarrior-test-id "Learn to juggle"))))
-      (should (string-match-p "takes no arguments"
+      (should (string-match-p "takes nothing after it"
                               (orgwarrior-test-error :op "act" :verb "archive" :ids id :args ["x"])))
       ;; An archive file with unsaved edits is refused like the source would be.
       (with-current-buffer (find-file-noselect (expand-file-name "tasks.org_archive" dir))
@@ -1738,7 +1738,7 @@ tags read as org reads them; a star line inside a block stays its text."
     (orgwarrior-test-ok :op "add" :fields '((title . "Pay the plumber") (keyword . "NEXT") (priority . "a"))
                         :file (expand-file-name "inbox.org" dir))
     (should (string-match-p "\n\\* NEXT \\[#A\\] Pay the plumber\n" (orgwarrior-test-file dir "inbox.org")))
-    (should (string-match-p "Priority is one of"
+    (should (string-match-p "Priority has to be one of"
                             (orgwarrior-test-error :op "add" :fields '((title . "X") (priority . "Z"))
                                                    :file (expand-file-name "inbox.org" dir))))))
 
@@ -1825,7 +1825,7 @@ tags read as org reads them; a star line inside a block stays its text."
       (should (string-match-p "one line" (orgwarrior-test-error
                                           :op "add" :file file :event t
                                           :fields '(:title "Dinner\r\n* X" :when "2026-10-20"))))
-      (should (string-match-p "would set tags" (orgwarrior-test-error
+      (should (string-match-p "would read it as tags" (orgwarrior-test-error
                                                 :op "add" :file file :fields '(:title "Tagged? :x:" :tags []))))
       (orgwarrior-test-ok :op "add" :file file :fields '(:title "Tagged? :x:" :tags ["y"]))
       (should-not (string-match-p "Injected\\|^\\* X" (orgwarrior-test-file dir "inbox.org")))
@@ -1851,7 +1851,7 @@ tags read as org reads them; a star line inside a block stays its text."
         (should (string-prefix-p old new))
         (should (> (length new) (length old)))
         (let ((err (orgwarrior-test-error :op "act" :verb "done" :ids (vector old))))
-          (should (string-match-p "renamed or gone" err))
+          (should (string-match-p "renamed or removed" err))
           (should (string-match-p (regexp-quote title) err)))
         (should-not (string-match-p "DONE Probe" (orgwarrior-test-file dir "inbox.org")))
         (orgwarrior-test-ok :op "act" :verb "pri" :ids (vector new) :args ["A"])
@@ -1899,7 +1899,7 @@ tags read as org reads them; a star line inside a block stays its text."
     (let ((org-enforce-todo-dependencies t)
           (org-blocker-hook '(org-block-todo-from-children-or-siblings-or-parent))
           (parent (orgwarrior-test-id "Publish to PyPI")))
-      (should (string-match-p "Org blocks Publish to PyPI from TODO to DONE: \"TODO Pick a license\""
+      (should (string-match-p "Org won't change Publish to PyPI from TODO to DONE, because \"TODO Pick a license\""
                               (orgwarrior-test-error :op "act" :verb "done" :ids (vector parent) :note "x")))
       (should (string-match-p "\\*\\* TODO Publish to PyPI" (orgwarrior-test-file dir "projects.org")))
       (orgwarrior-test-ok :op "act" :verb "done" :note "x"
@@ -1921,6 +1921,30 @@ tags read as org reads them; a star line inside a block stays its text."
         (orgwarrior-test-ok :op "add" :file (expand-file-name "inbox.org" dir) :fields '(:title "Eggs") :to "lists.org")
         (should (string-match-p "^\\* TODO Eggs" (orgwarrior-test-file sub "lists.org")))
         (should (string-match-p "No agenda file" (orgwarrior-test-error :op "outline" :file "nope.org")))))))
+
+(ert-deftest orgwarrior-test-missing-agenda-file ()
+  ;; A listed path that doesn't exist: org's agenda would stop to ask about
+  ;; it ("Remove from list?"), so it's skipped; setup names it.
+  (orgwarrior-test-with-fixtures
+    (let ((org-agenda-files (append org-agenda-files (list (expand-file-name "gone.org" dir) "alsogone.org"))))
+      (should (seq-find (lambda (l) (string-match-p "Call dentist" (plist-get l :text)))
+                        (orgwarrior-test-ok :op "view" :kind "today")))
+      (should (string-match-p "alsogone\\.org" (cadr (plist-get (orgwarrior-test-ok :op "setup") :missing))))
+      (should (string-match-p "gone\\.org" (car (plist-get (orgwarrior-test-ok :op "setup") :missing)))))))
+
+(ert-deftest orgwarrior-test-setup ()
+  ;; What --check reports: the agenda files, where add writes, refile targets.
+  (orgwarrior-test-with-fixtures
+    (let ((s (orgwarrior-test-ok :op "setup" :file (expand-file-name "inbox.org" dir))))
+      (should (= 4 (length (plist-get s :files))))
+      (should (equal (plist-get s :agenda_setting) "list"))
+      (should-not (plist-get s :missing))
+      (should (string-match-p "inbox\\.org\\'" (plist-get (plist-get s :add) :file)))
+      (should (eq (plist-get s :refile) t))
+      (should (member "d" (plist-get s :commands))))
+    ;; A heading [add] names that isn't there: the reason, not a file.
+    (let ((s (orgwarrior-test-ok :op "setup" :file (expand-file-name "inbox.org" dir) :heading "Nope")))
+      (should (string-match-p "No heading" (plist-get (plist-get s :add) :error))))))
 
 (ert-deftest orgwarrior-test-encrypted-agenda-file ()
   ;; Opening an encrypted file asks for its passphrase: refused up front,
@@ -2068,12 +2092,12 @@ file (a real config's inbox) is an error, the file as it was."
   (orgwarrior-test-with-fixtures
     (should (string-match-p "already DONE" (orgwarrior-test-error :op "add" :text "DONE thing"
                                                             :file (expand-file-name "inbox.org" dir))))
-    (should (string-match-p "Empty title" (orgwarrior-test-error :op "add" :text "NEXT :x:"
+    (should (string-match-p "title is empty" (orgwarrior-test-error :op "add" :text "NEXT :x:"
                                                            :file (expand-file-name "inbox.org" dir))))
     (should (string-match-p "No heading \"Nope\""
                             (orgwarrior-test-error :op "add" :text "x" :heading "Nope"
                                               :file (expand-file-name "inbox.org" dir))))
-    (should (string-match-p "not found" (orgwarrior-test-error :op "add" :text "x"
+    (should (string-match-p "no file to add to" (orgwarrior-test-error :op "add" :text "x"
                                                          :file (expand-file-name "nope.org" dir))))
     (let ((org-default-notes-file (expand-file-name "nope.org" dir)))
       (should (string-match-p "set \\[add\\] file" (orgwarrior-test-error :op "add" :text "x"))))
@@ -2113,7 +2137,7 @@ file (a real config's inbox) is an error, the file as it was."
                        "Rebooked"))
         (orgwarrior-test-ok :op "note-edit" :id id :n 2 :text "")
         (should (equal (plist-get (nth 1 (plist-get (orgwarrior-test-ok :op "show" :id id) :history)) :text) ""))
-        (should (string-match-p "needs its text" (orgwarrior-test-error :op "note-edit" :id id :n 1 :text " ")))
+        (should (string-match-p "needs some text" (orgwarrior-test-error :op "note-edit" :id id :n 1 :text " ")))
         ;; Removed, all of them: the drawer keeps the clock.
         (dotimes (_ 3) (orgwarrior-test-ok :op "note-edit" :id id :n 1 :remove t))
         (should-not (plist-get (orgwarrior-test-ok :op "show" :id id) :history))
@@ -2131,8 +2155,8 @@ file (a real config's inbox) is an error, the file as it was."
     (let ((inbox (expand-file-name "inbox.org" dir)))
       (orgwarrior-test-ok :op "add" :file inbox :heading "Tasks" :fields '(:title "Paint the hall" :effort "1:30"))
       (should (string-match-p "\\*\\* TODO Paint the hall\n:PROPERTIES:\n:Effort: +1:30\n:END:" (orgwarrior-test-file dir "inbox.org")))
-      (should (string-match-p "Not a duration" (orgwarrior-test-error :op "add" :file inbox :fields '(:title "x" :effort "soon"))))
-      (should (string-match-p "no effort" (orgwarrior-test-error :op "add" :file inbox :event t
+      (should (string-match-p "as a duration" (orgwarrior-test-error :op "add" :file inbox :fields '(:title "x" :effort "soon"))))
+      (should (string-match-p "can't have an effort" (orgwarrior-test-error :op "add" :file inbox :event t
                                                                  :fields '(:title "x" :when "fri" :effort "1:00")))))))
 
 (ert-deftest orgwarrior-test-properties-and-effort ()
@@ -2154,9 +2178,9 @@ file (a real config's inbox) is an error, the file as it was."
       (should-not (plist-get (orgwarrior-test-ok :op "show" :id id) :effort))
       ;; Refused: org's own, a bad name, not a duration.
       (should (string-match-p "org's own" (orgwarrior-test-error :op "act" :ids (vector id) :verb "prop" :args ["TODO" "x"])))
-      (should (string-match-p "Not a property name"
+      (should (string-match-p "can't be a property name"
                               (orgwarrior-test-error :op "act" :ids (vector id) :verb "prop" :args ["a b" "x"])))
-      (should (string-match-p "Not a duration" (orgwarrior-test-error :op "act" :ids (vector id) :verb "effort" :args ["soon"])))
+      (should (string-match-p "as a duration" (orgwarrior-test-error :op "act" :ids (vector id) :verb "effort" :args ["soon"])))
       ;; Effort_ALL: its values only, and offered.
       (orgwarrior-test-ok :op "act" :ids (vector id) :verb "prop" :args ["Effort_ALL" "0:15" "0:30" "1:00"])
       (should (equal (plist-get (orgwarrior-test-ok :op "props" :id id :name "Effort") :values) '("0:15" "0:30" "1:00")))
@@ -2215,7 +2239,7 @@ file (a real config's inbox) is an error, the file as it was."
       (should (string-match-p "Already clocked in" (orgwarrior-test-error :op "clock-in" :id id)))
       (should (string-match-p "later than now" (orgwarrior-test-error :op "clock-in" :id (orgwarrior-test-id "Call dentist")
                                                                       :time "+5m")))
-      (should (string-match-p "before it started" (orgwarrior-test-error :op "clock-out" :time "-45m")))
+      (should (string-match-p "before the clock started" (orgwarrior-test-error :op "clock-out" :time "-45m")))
       (let ((out (orgwarrior-test-ok :op "clock-out" :time "+10m")))  ; fudged forward
         (should (= (plist-get out :minutes) 40))
         (should (eq (plist-get out :removed) :false)))
@@ -2386,12 +2410,12 @@ file (a real config's inbox) is an error, the file as it was."
       (should (string-search "CLOCK: [2026-10-06 Tue 23:30]--[2026-10-07 Wed 00:15] =>  0:45" (funcall file)))
       (orgwarrior-test-ok :op "clock-add" :id id :start "2026-10-08 9:00" :duration "1:30")
       (should (string-search "[2026-10-08 Thu 10:30] =>  1:30" (funcall file)))
-      (should (string-match-p "one of them" (orgwarrior-test-error :op "clock-add" :id id :start "9:00"
+      (should (string-match-p "either the time it ended" (orgwarrior-test-error :op "clock-add" :id id :start "9:00"
                                                                    :end "10:00" :duration "1h")))
-      (should (string-match-p "one of them" (orgwarrior-test-error :op "clock-add" :id id :start "9:00")))
+      (should (string-match-p "either the time it ended" (orgwarrior-test-error :op "clock-add" :id id :start "9:00")))
       (should (string-match-p "later than now" (orgwarrior-test-error :op "clock-add" :id id :start "-10m"
                                                                       :duration "1h")))
-      (should (string-match-p "Not a duration" (orgwarrior-test-error :op "clock-add" :id id :start "-2h"
+      (should (string-match-p "as a duration" (orgwarrior-test-error :op "clock-add" :id id :start "-2h"
                                                                       :duration "soon")))
       (should (string-match-p "before it starts" (orgwarrior-test-error :op "clock-add" :id id
                                                                         :start "2026-10-06 14:00" :end "9:00"))))))

@@ -111,6 +111,7 @@ def render() -> str:
         ".TP", ".BI \\-m \" NOTE\"", "A note to add with done, wait or any other keyword (help notes).",
         ".TP", ".BI \\-s \" SOCKET\"", "The Emacs server socket's name, if it isn't the default. You can also set socket in the config, or ORGWARRIOR_SOCKET.",
         ".TP", ".B \\-\\-help", "Show the help. After a command, show that command's help: orgwarrior add \\-\\-help.",
+        ".TP", ".B \\-\\-check", "Check your setup: Emacs and its server, your init file, your agenda files, where add writes and your config, saying what to fix. Exits 1 if anything has to be fixed.",
         ".TP", ".B \\-\\-version", "Show the version.",
         ".SH FILES",
         ".TP", ".I $XDG_CONFIG_HOME/orgwarrior/config.toml",

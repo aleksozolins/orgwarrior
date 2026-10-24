@@ -57,10 +57,20 @@ would drift from org's real agenda logic).
 - **All day**: a view line that's an event on a day without a time (org's
   `type` timestamp, sexp or block, no `time-of-day`, no keyword) has
   `all_day`, for a front end to put first; the CLI keeps org's order.
-- No daemon: one line ("no Emacs daemon running on socket … start one
+- No daemon: one line ("no Emacs daemon is running on socket …. Start one
   with `emacs --daemon`"), exit 1. `ALTERNATE_EDITOR` is stripped for
   `emacsclient` (set to an editor like nvim, with no daemon it launches and hangs).
   Exit 2 for a command line it can't read.
+- **Setup** (`--check`, `check.py`, the engine's `setup` op): each first-run
+  snag found in a fresh home, with what to do; it runs before the config
+  loads (a broken one is a finding). An option, not a word: `orgwarrior
+  doctor` would have been a search for "doctor". A view with no tasks asks
+  for the agenda files and says so when there are none. A listed agenda
+  path that doesn't exist is skipped (`org-agenda-skip-unavailable-files`
+  bound in `orgwarrior-call`), and `--check` names it: org would stop to
+  ask "Remove from list?", which here reads only "User interaction while
+  inhibited". Not refused: one unmounted drive would stop every command. `user-init-file` is the name Emacs tried
+  even with no such file (a stray `~/.emacs.d` hides `~/.config/emacs`).
 - A request binds `gc-cons-threshold` to 64 MB (if Emacs's is lower):
   with large agenda buffers live each collection costs ~0.1 s, and at the
   default 800 KB a big view spent most of its time collecting.

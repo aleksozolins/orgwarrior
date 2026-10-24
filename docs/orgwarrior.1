@@ -1,6 +1,6 @@
 .nr HY 0
 .ds AD l
-.TH ORGWARRIOR 1 "" "orgwarrior 0.3.1" "User Commands"
+.TH ORGWARRIOR 1 "" "orgwarrior 0.4.0" "User Commands"
 .SH NAME
 orgwarrior \- your Org agenda from the command line, run by your Emacs daemon
 .SH SYNOPSIS
@@ -575,6 +575,9 @@ The Emacs server socket's name, if it isn't the default. You can also set socket
 .TP
 .B \-\-help
 Show the help. After a command, show that command's help: orgwarrior add \-\-help.
+.TP
+.B \-\-check
+Check your setup: Emacs and its server, your init file, your agenda files, where add writes and your config, saying what to fix. Exits 1 if anything has to be fixed.
 .TP
 .B \-\-version
 Show the version.

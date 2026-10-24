@@ -48,7 +48,8 @@ adding
 more: orgwarrior help TOPIC, or --help after a command
   views show keywords dates tags priority rename refile up archive kill
   edit open clock clocked closed properties add notes config colors
-options: -m NOTE, -s SOCKET (emacsclient's), --version; help --man: man page
+options: -m NOTE, -s SOCKET (emacsclient's), --check (your setup), --version
+help --man: the man page
 help --skill: a SKILL.md that teaches an AI agent (Claude Code) orgwarrior"""
 
 TOPICS = {

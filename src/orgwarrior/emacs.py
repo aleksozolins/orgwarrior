@@ -38,7 +38,7 @@ def read_elisp_string(printed: str) -> str:
     """
     printed = printed.strip()
     if len(printed) < 2 or printed[0] != '"' or printed[-1] != '"':
-        raise EmacsError(f"unexpected reply from Emacs: {printed[:200]}")
+        raise EmacsError(f"Emacs sent a reply orgwarrior doesn't understand: {printed[:200]}")
     return re.sub(r"\\(.)", r"\1", printed[1:-1], flags=re.DOTALL)
 
 
@@ -81,9 +81,9 @@ def call(request: dict, socket: str | None = None, timeout: float = TIMEOUT):
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=timeout)
     except FileNotFoundError:
-        raise EmacsError("emacsclient not found on PATH") from None
+        raise EmacsError("emacsclient isn't on your PATH. It comes with Emacs") from None
     except subprocess.TimeoutExpired:
-        raise EmacsError(f"Emacs didn't answer within {timeout}s (is it busy or waiting for input?)") from None
+        raise EmacsError(f"Emacs didn't answer within {timeout}s. It may be busy, or waiting for you to answer a question in Emacs") from None
     finally:
         if path:
             os.unlink(path)
@@ -93,7 +93,9 @@ def call(request: dict, socket: str | None = None, timeout: float = TIMEOUT):
         if "*ERROR*" in stderr:
             raise EmacsError(f"Emacs error: {stderr.split('*ERROR*:', 1)[-1].strip()}")
         where = f" on socket {socket!r}" if socket else ""
-        raise EmacsError(f"no Emacs daemon running{where} — start one with `emacs --daemon`")
+        raise EmacsError(f"no Emacs daemon is running{where}. Start one with `emacs --daemon`, or add "
+                         "(server-start) to your init file if you keep Emacs open. "
+                         "`orgwarrior --check` checks the rest of your setup.")
 
     reply = json.loads(read_elisp_string(proc.stdout))
     if "error" in reply:

@@ -112,6 +112,8 @@ orgwarrior's message says what's wrong (a bad date, an unknown keyword,
 unsaved changes in Emacs, which it won't save over; a read-only file,
 a copy of a calendar kept elsewhere, which it never changes): fix and
 rerun, or ask. If no Emacs daemon answers, say so: the user starts one.
+When something about the setup itself seems wrong (every view empty, a
+file it can't find), `orgwarrior --check` reports what it found.
 
 **When in doubt about which task, tags, dates or anything else, ask
 rather than guess.**

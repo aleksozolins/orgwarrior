@@ -125,7 +125,7 @@ def test_clock(daemon):
     with pytest.raises(OrgwarriorError, match="changed since"):
         ow.clock_remove(juggle, 1, old="CLOCK: nope")
     assert ow.clock_remove(juggle, 1, old=edited["clocks"][0]["text"])["clocks"] == []
-    with pytest.raises(OrgwarriorError, match="No clock running"):
+    with pytest.raises(OrgwarriorError, match="no clock running"):
         ow.clock_cancel()
 
 

@@ -1,6 +1,6 @@
 """A taskwarrior-style command line for org-mode's agenda."""
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 
 
 class OrgwarriorError(Exception):

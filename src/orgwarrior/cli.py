@@ -120,7 +120,7 @@ def parse(argv: list[str], config: configmod.Config) -> tuple[object, str | None
     command, socket = parse_command(args, config)
     if archive:
         if not isinstance(command, (View, Report, Show)) or getattr(command, "kind", "") == "custom":
-            raise UsageError("--archive goes with a search, a tag or state match, or clocked")
+            raise UsageError("--archive only works with a search, a tag or state match, or clocked")
         if not isinstance(command, Show):  # an archived task's ID shows it anyway
             command.archive = True
     return command, socket
@@ -181,8 +181,8 @@ def parse_command(args: list[str], config: configmod.Config) -> tuple[object, st
                 rest = rest[:i] + rest[i + 2:]
         # A mistyped option would be part of the title.
         if bad := next((a for a in rest if re.fullmatch(r"--[a-z][a-z-]*", a)), None):
-            raise UsageError(f"add has no option {bad}: --to PLACE, --under ID "
-                             f"(for {bad} in the title, quote the title)")
+            raise UsageError(f"add has no option {bad}. Its options are --to PLACE and --under ID. "
+                             f"To have {bad} in the title, quote the title")
         if len(found) > 1:
             raise UsageError("add takes --to or --under, not both")
         if not rest:
@@ -195,7 +195,7 @@ def parse_command(args: list[str], config: configmod.Config) -> tuple[object, st
     # With arguments, a view name that's also a keyword (`orgwarrior next +@phone`) is the keyword.
     if (view := view_for(first, config)) and not (rest and view.kind == "custom"):
         if rest:
-            raise UsageError(f"`orgwarrior {first}` takes no arguments")
+            raise UsageError(f"`orgwarrior {first}` takes nothing after it")
         return view, socket
     if ID_RE.fullmatch(first):
         return parse_task_command(args), socket
@@ -291,7 +291,7 @@ def parse_task_command(args: list[str]) -> Show | Act:
     note, verb_args, yes, new = None, [], False, None
     if verb == "rename":  # all of it is the title, -m too
         if len(ids) > 1 or not rest:
-            raise UsageError("rename takes one task ID and the new title")
+            raise UsageError("rename takes one task's ID, then the new title")
         return Act(ids, verb, rest)
     while rest:
         arg = rest.pop(0)
@@ -310,10 +310,10 @@ def parse_task_command(args: list[str]) -> Show | Act:
         else:
             verb_args.append(arg)
     if verb == "edit" and (len(ids) > 1 or verb_args or note):
-        raise UsageError("edit takes one task ID and nothing else")
+        raise UsageError("edit takes one task's ID and nothing else")
     if verb == "open" and (len(ids) > 1 or note or len(verb_args) > 1
                            or (verb_args and not verb_args[0].isdigit())):
-        raise UsageError("open takes one task ID and, optionally, a link's number")
+        raise UsageError("open takes one task's ID, and a link's number if you want a particular one")
     return Act(ids, verb, verb_args, note, yes, new)
 
 
@@ -322,17 +322,17 @@ def parse_clock(ids: list[str], args: list[str]) -> Clock:
     `[ID] clock cancel`."""
     if not args or args == ["--short"]:
         if ids:
-            raise UsageError("clock after an ID takes in, out or cancel")
+            raise UsageError("After an ID, clock takes in, out or cancel")
         return Clock("status", short=bool(args))
     action, time = args[0].lower(), " ".join(args[1:]) or None
     if action not in ("in", "out", "cancel"):
         raise UsageError(f"clock takes in, out or cancel, not {args[0]!r}")
     if len(ids) > 1:
-        raise UsageError("clock takes one task ID")
+        raise UsageError("clock takes one task's ID")
     if action == "in" and not ids:
         raise UsageError("clock in needs the task: orgwarrior ID clock in")
     if action == "cancel" and time:
-        raise UsageError("clock cancel takes no time")
+        raise UsageError("clock cancel doesn't take a time")
     return Clock(action, ids, time)
 
 
@@ -344,7 +344,7 @@ def parse_clocks(ids: list[str], args: list[str]) -> Clocks | ClockAdd:
     for both), `ID clocks N rm`, `ID clocks add START-END` (or START
     DURATION, a date first)."""
     if len(ids) > 1:
-        raise UsageError("clocks takes one task ID")
+        raise UsageError("clocks takes one task's ID")
     if not args:
         return Clocks(ids[0])
     if args[0].lower() == "add":
@@ -354,14 +354,14 @@ def parse_clocks(ids: list[str], args: list[str]) -> Clocks | ClockAdd:
         if rest and "-" in rest[-1].strip("-"):
             start, _, end = rest[-1].partition("-")
             return ClockAdd(ids[0], " ".join(rest[:-1] + [start]), end)
-        raise UsageError("clocks add takes START-END or START DURATION (14:00-15:30, 14:00 1h30m), a date first")
+        raise UsageError("clocks add takes START-END or START DURATION, like 14:00-15:30 or 14:00 1h30m, with a date first for another day")
     if not args[0].isdigit():
-        raise UsageError(f"clocks takes a clock's number (from orgwarrior {ids[0]} clocks), not {args[0]!r}")
+        raise UsageError(f"clocks takes a clock's number, which orgwarrior {ids[0]} clocks lists, not {args[0]!r}")
     n, rest = int(args[0]), args[1:]
     if [a.lower() for a in rest] == ["rm"]:
         return Clocks(ids[0], n, remove=True)
     if not rest or "-" not in rest[-1] or rest[-1] == "-":
-        raise UsageError("clocks N takes START-END, START- or -END (9:30-12:20), or rm")
+        raise UsageError("clocks N takes a new START-END, START- or -END (like 9:30-12:20), or rm to delete it")
     start, _, end = rest[-1].partition("-")
     date = " ".join(rest[:-1])
     on = lambda t: f"{date} {t}".strip() if t else None
@@ -520,7 +520,7 @@ def confirm_kill(ids: list[str], socket: str | None, painter: Painter) -> bool:
     """Show what `kill` would delete and ask.  Asked here, not in Emacs: a
     prompt there would hang emacsclient."""
     if not sys.stdin.isatty():
-        raise UsageError("kill asks before deleting; pass --yes when not at a terminal")
+        raise UsageError("kill asks before deleting. When it isn't run in a terminal, add --yes")
     tasks = [emacs.call({"op": "show", "id": task_id}, socket) for task_id in ids]
     for task in tasks:
         heading = task["lines"][0]
@@ -607,7 +607,7 @@ def open_links(task_id: str, args: list[str], socket: str | None, painter: Paint
 
     def pick(answer: str) -> int:
         if not answer.isdigit() or not 1 <= int(answer) <= len(links):
-            raise UsageError(f"no link {answer}; there {'is 1' if len(links) == 1 else f'are {len(links)}'}")
+            raise UsageError(f"there's no link {answer}. There {'is 1' if len(links) == 1 else f'are {len(links)}'}")
         return int(answer)
 
     def go(n: int) -> None:
@@ -807,7 +807,7 @@ def run(command, config: configmod.Config, socket: str | None) -> None:
             elif text := helpmod.topic(topic, [k.lower() for k in kw["keywords"]]):
                 page(helpmod.paint_topic(text, painter))
             else:
-                raise UsageError(f"no help on {topic!r}; topics: {' '.join(helpmod.TOPICS)}")
+                raise UsageError(f"there's no help on {topic!r}. The topics are: {' '.join(helpmod.TOPICS)}")
         case Version():
             print(f"orgwarrior {__version__}")
         case View() as view:
@@ -818,6 +818,10 @@ def run(command, config: configmod.Config, socket: str | None) -> None:
             lines = emacs.call(view_request(view, config, width), socket)
             with spaced():
                 print_view(lines, columns if sys.stdout.isatty() else None, painter)
+            # An empty view on a first run: say why, rather than show nothing.
+            if not any(l.get("id") for l in lines) and not emacs.call({"op": "files"}, socket):
+                print("orgwarrior: Emacs has no agenda files it can find (org-agenda-files), so every "
+                      "view is empty. `orgwarrior --check` says what to fix.", file=sys.stderr)
         case Outline(file):
             outline = emacs.call({"op": "outline", "file": file}, socket)
             with spaced():
@@ -881,7 +885,7 @@ def run(command, config: configmod.Config, socket: str | None) -> None:
             open_links(ids[0], args, socket, painter)
         case Act(ids, "edit"):
             if not (sys.stdin.isatty() and sys.stdout.isatty()):
-                raise UsageError("edit opens Emacs in the terminal; run it at one")
+                raise UsageError("edit opens Emacs in this terminal, so it has to run in one")
             if emacs.edit(ids[0], socket):
                 print("Not saved; changes discarded.")
         case Act(ids, "note", args, note) if not args and note is None:
@@ -917,13 +921,22 @@ def run(command, config: configmod.Config, socket: str | None) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    # Before the config loads: a config that doesn't is one of the things it reports.
+    if "--check" in argv:
+        from orgwarrior import check
+        rest = [a for a in argv if a != "--check"]
+        if rest and not (len(rest) == 2 and rest[0] in ("-s", "--socket")):
+            print("orgwarrior: --check takes only -s SOCKET", file=sys.stderr)
+            return 2
+        painter = Painter(configmod.Config().colors if sys.stdout.isatty() and not os.environ.get("NO_COLOR") else None)
+        return check.report(rest[1] if rest else None, painter)
     try:
         config = configmod.load()
         command, socket = parse(argv, config)
         socket = socket or os.environ.get("ORGWARRIOR_SOCKET") or config.socket
         run(command, config, socket)
     except UsageError as e:
-        print(f"orgwarrior: {e}\n(orgwarrior help for usage)", file=sys.stderr)
+        print(f"orgwarrior: {e}\n(orgwarrior help lists the commands)", file=sys.stderr)
         return 2
     except OrgwarriorError as e:
         print(f"orgwarrior: {e}", file=sys.stderr)

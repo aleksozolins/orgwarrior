@@ -58,7 +58,10 @@ The reply is {\"ok\": RESULT} or {\"error\": MESSAGE}."
   (let ((dirty (orgwarrior--dirty-buffers)))
     (orgwarrior--json
      (condition-case err
+;; A listed agenda file that doesn't exist is skipped, not asked about
+         ;; ("Remove from list?" can't be answered here); --check names it.
          (let ((inhibit-interaction t)
+               (org-agenda-skip-unavailable-files t)
                (inhibit-message t)
                (text-quoting-style 'straight)
                (gc-cons-threshold (max gc-cons-threshold orgwarrior-gc-cons-threshold)))
@@ -68,7 +71,7 @@ The reply is {\"ok\": RESULT} or {\"error\": MESSAGE}."
                                          :null-object nil :false-object nil))))
        (inhibited-interaction
         (orgwarrior--undo-failed dirty)
-        (list :error (format "Emacs tried to prompt (%s); orgwarrior can't answer prompts"
+        (list :error (format "Emacs tried to ask a question (%s), and orgwarrior can't answer one. Do the same thing in Emacs to see what it wants, or run orgwarrior --check"
                              (error-message-string err))))
        (error (orgwarrior--undo-failed dirty)
               (list :error (error-message-string err)))))))
@@ -99,14 +102,59 @@ pinentry window waiting out the timeout.  Open, it's decrypted already."
   (let ((re (if (boundp 'epa-file-name-regexp) epa-file-name-regexp "\\.gpg\\'")))
     (dolist (f (orgwarrior--agenda-files))
       (when (and (string-match-p re f) (not (find-buffer-visiting f)))
-        (user-error "%s is encrypted and not open in Emacs: orgwarrior can't ask for its passphrase. Open it in Emacs once (it stays decrypted while Emacs runs), or leave it out of org-agenda-files"
+        (user-error "%s is encrypted and not open in Emacs, and orgwarrior can't type its passphrase. Open it in Emacs once (it stays decrypted while Emacs runs), or take it out of org-agenda-files"
                     (abbreviate-file-name f))))))
+
+(defun orgwarrior--setup (file heading)
+  "What `orgwarrior --check' looks at, FILE and HEADING being [add]'s: this Emacs, its init file, and the
+org settings orgwarrior relies on.  Before the encrypted-file check: an
+unopened .gpg agenda file is one of the things it reports."
+  (let* ((setting org-agenda-files)
+         ;; org-agenda-files keeps a listed file that doesn't exist; the agenda skips it.
+         (files (seq-filter #'file-exists-p (ignore-errors (org-agenda-files t))))
+         (re (if (boundp 'epa-file-name-regexp) epa-file-name-regexp "\\.gpg\\'"))
+         (abbrev (lambda (f) (abbreviate-file-name (expand-file-name f)))))
+    (list :emacs emacs-version
+          :org (org-version)
+          :daemon (if (daemonp) t :false)
+          :socket (if (and (boundp 'server-socket-dir) server-socket-dir)
+                      (abbreviate-file-name (expand-file-name server-name server-socket-dir))
+                    :null)
+          ;; Set to the name it tried (~/.emacs) even when there was no such file.
+          :init (if (and user-init-file (file-exists-p user-init-file))
+                    (abbreviate-file-name user-init-file) :null)
+          :emacs_dir (abbreviate-file-name (expand-file-name user-emacs-directory))
+          ;; An init file in ~/.config/emacs is ignored once ~/.emacs.d exists,
+          ;; and a native-compiling Emacs makes it on its first start (eln-cache).
+          :xdg_init (let ((f (expand-file-name "emacs/init.el" (or (getenv "XDG_CONFIG_HOME") "~/.config"))))
+                      (if (file-exists-p f) (abbreviate-file-name f) :null))
+          :agenda_setting (cond ((null setting) "unset") ((stringp setting) "file") (t "list"))
+          ;; Entries of the list that don't exist: a typo'd path is silently skipped by org.
+          :missing (vconcat (and (listp setting)
+                                 (seq-remove #'file-exists-p
+                                             (mapcar (lambda (f) (abbreviate-file-name (expand-file-name f org-directory)))
+                                                     setting))))
+          :files (vconcat (mapcar abbrev files))
+          :read_only (vconcat (mapcar abbrev (seq-remove #'file-writable-p files)))
+          :encrypted (vconcat (mapcar abbrev (seq-filter (lambda (f) (and (string-match-p re f)
+                                                                         (not (find-buffer-visiting f))))
+                                                        files)))
+          :unsaved (vconcat (delq nil (mapcar (lambda (f) (let ((b (find-buffer-visiting f)))
+                                                           (and b (buffer-modified-p b) (funcall abbrev f))))
+                                              files)))
+          :add (condition-case err
+                   (list :file (abbreviate-file-name
+                                (buffer-file-name (plist-get (orgwarrior--add-place file heading) :buffer))))
+                 (error (list :error (error-message-string err))))
+          :refile (if org-refile-targets t :false)
+          :commands (vconcat (seq-filter #'stringp (mapcar #'car org-agenda-custom-commands))))))
 
 (defun orgwarrior--dispatch (req)
   (let-alist req
     (let ((orgwarrior--archives .archive))
-      (orgwarrior--check-encrypted)
+      (unless (equal .op "setup") (orgwarrior--check-encrypted))
       (pcase .op
+        ("setup" (orgwarrior--setup .file .heading))
         ("view" (orgwarrior--view .kind .arg .width .prefix .grid .tags))
         ("show" (orgwarrior--show .id .html))
         ("act" (orgwarrior--act .ids .verb .args .note .new))
@@ -202,10 +250,10 @@ the next export would overwrite.  Shown everywhere, changed nowhere."
   "Refuse a change to BUF before anything changes: its file read only
 \(`orgwarrior--read-only-p'), or the user's unsaved changes in Emacs."
   (when (orgwarrior--read-only-p buf)
-    (user-error "%s is read only (its file isn't writable)"
+    (user-error "%s is read only, because its file isn't writable"
                 (orgwarrior--file-key (buffer-file-name (orgwarrior--base-buffer buf)))))
   (when (buffer-modified-p buf)
-    (user-error "%s has unsaved changes in Emacs; save or revert it first"
+    (user-error "%s has unsaved changes in Emacs. Save or revert it first"
                 (buffer-name buf))))
 
 
@@ -407,12 +455,12 @@ invisible text, like a folded subtree, is still part of the text."
          (describe (lambda (es) (mapconcat (lambda (e) (orgwarrior--describe index e)) es "\n"))))
     (cond
      ((< (length id) orgwarrior--min-id-length)
-      (user-error "ID too short: %s (at least %d characters)" id orgwarrior--min-id-length))
+      (user-error "%s is too short for an ID. IDs are at least %d characters" id orgwarrior--min-id-length))
      ((null matches) (user-error "No task %s" id))
      ((cdr matches) (user-error "ID %s is ambiguous:\n%s" id (funcall describe matches)))
      ;; A task gone since kept it: the new one starting with it is given a longer ID.
      ((orgwarrior--reserved id (orgwarrior-index-prefixes index))
-      (user-error "%s was the ID of a task renamed or gone since; the one starting with it now is:\n%s"
+      (user-error "%s was the ID of a task that has since been renamed or removed. The one starting with it now is:\n%s"
                   id (funcall describe matches)))
      (t (car matches)))))
 
@@ -485,7 +533,7 @@ weekday name (org writes them in the locale's language)."
                            (string-to-number (match-string 2 org-end-time-was-given)))))))))
 
 (defun orgwarrior--read-date (string)
-  (or (orgwarrior--parse-date string) (user-error "Can't parse date: %s" string)))
+  (or (orgwarrior--parse-date string) (user-error "Can't read %s as a date. Try fri, +2d, 2026-10-15 or fri 14:00" string)))
 
 (defconst orgwarrior--repeater-re
   "\\`\\(?:\\.\\+\\|\\+\\+\\|\\+\\)[0-9]+[hdwmy]\\(?:/[0-9]+[hdwmy]\\)?\\'"
@@ -632,12 +680,12 @@ what was done is mostly archived."
                       (org-agenda-list nil (time-to-days (nth 1 date)) 1)
                     (org-search-view nil arg)))))
             ("search"
-             (when (string-blank-p arg) (user-error "Search for what?"))
+             (when (string-blank-p arg) (user-error "A search needs some words to search for"))
              (org-search-view nil arg))
             ("tags" (org-tags-view nil arg))
             ("custom"
              (unless (assoc arg org-agenda-custom-commands)
-               (user-error "No agenda command %S in org-agenda-custom-commands" arg))
+               (user-error "There's no agenda command %S in org-agenda-custom-commands" arg))
              (org-agenda nil arg))
             (_ (error "Unknown view kind: %s" kind))))
         (let ((buf (or (get-buffer orgwarrior-agenda-buffer) (current-buffer))))
@@ -1135,18 +1183,18 @@ first line stays as org wrote it.  The task's history after."
       (pcase-let* ((`(,start . ,end) (orgwarrior--entry-region))
                    (items (orgwarrior--log-items start end))
                    (item (or (and (integerp n) (> n 0) (nth (1- n) items))
-                             (user-error "No log item %s on it; it has %d" n (length items))))
+                             (user-error "There's no history entry %s on it. It has %d" n (length items))))
                    (beg (plist-get item :beg))
                    (stop (plist-get item :end))
                    (text (string-trim (or text ""))))
         (when (and old (not (equal old (string-trim (buffer-substring-no-properties beg stop)))))
-          (user-error "That note changed since it was shown"))
+          (user-error "That note changed since it was shown. Show the task again"))
         (cond
          (remove
           (delete-region beg stop)
           (orgwarrior--drop-empty-log-drawers))
          ((and (string-empty-p text) (equal (plist-get item :kind) "note"))
-          (user-error "A note needs its text; delete it instead"))
+          (user-error "A note needs some text. To get rid of it, delete it instead"))
          (t
           (goto-char beg)
           (let ((ind (progn (looking-at "[ \t]*") (match-string 0)))
@@ -1200,7 +1248,7 @@ children, after the ones it has (`orgwarrior--add-outline')."
                    (`(,start . ,end) (orgwarrior--entry-region))
                    (added 0))
         (unless (equal (string-trim-right (buffer-substring-no-properties start end)) old)
-          (user-error "The entry changed; reload"))
+          (user-error "The task's text changed since it was shown. Reload it and try again"))
         (save-excursion
           ;; Up to the end of its last non-blank line: the blank lines before
           ;; the next heading stay.
@@ -1275,7 +1323,7 @@ a heading is refused: it would cut the entry short."
          (lines (unless (string-empty-p text) (split-string text "\n")))
          meta)
     (when-let* ((line (seq-find (lambda (l) (string-match-p orgwarrior--heading-line-re l)) lines)))
-      (user-error "A line can't start with \"*\", org would make it a heading: %s" line))
+      (user-error "A line can't start with \"*\", because org would make it a heading: %s" line))
     (when (and lines (string-match-p org-planning-line-re (car lines)))
       (push (pop lines) meta))
     (while-let ((lines)
@@ -1338,7 +1386,7 @@ On the command line, `edit' gives the context a list of boxes lacks."
       (let* ((items (orgwarrior--checkbox-items (point) (save-excursion (outline-next-heading) (point))))
              (item (and (integerp n) (<= 1 n (length items)) (nth (1- n) items))))
         (unless (and item (equal text (orgwarrior--checkbox-text item)))
-          (user-error "The checkboxes changed; reload"))
+          (user-error "The checkboxes changed since they were shown. Reload and try again"))
         (save-excursion
           (goto-char (orgwarrior--el-begin item))
           (org-toggle-checkbox))
@@ -1427,9 +1475,9 @@ setup kept in a folder of `org-directory')."
         (let ((named (and (not (string-search "/" key))
                           (seq-filter (lambda (f) (equal (file-name-nondirectory f) key)) files))))
           (cond ((and named (null (cdr named))) (car named))
-                (named (user-error "%s is several agenda files: %s" key
+                (named (user-error "%s matches several agenda files: %s" key
                                    (mapconcat #'orgwarrior--file-key named ", ")))))
-        (user-error "No agenda file %s" key))))
+        (user-error "There's no agenda file %s" key))))
 
 (defun orgwarrior--top-level ()
   "Move to the file's first top-level heading; nil if it has none."
@@ -1458,14 +1506,14 @@ they were."
   (let* ((index (orgwarrior--index))
          (parent (and parent (orgwarrior--resolve index parent)))
          (buf (if parent (orgwarrior-entry-buffer parent)
-                (orgwarrior--file-buffer (orgwarrior--agenda-file (or file (user-error "reorder needs a parent or a file"))))))
+                (orgwarrior--file-buffer (orgwarrior--agenda-file (or file (user-error "reorder needs a parent heading or a file"))))))
          (wanted (mapcar (lambda (id) (orgwarrior-entry-hash (orgwarrior--resolve index id))) ids)))
     (orgwarrior--check-writable buf)
     (with-current-buffer buf
       (org-with-wide-buffer
        (if parent (goto-char (orgwarrior-entry-pos parent)))
        (unless (if parent (org-goto-first-child) (orgwarrior--top-level))
-         (user-error "Nothing to reorder"))
+         (user-error "There's nothing to reorder"))
        (let (starts hashes end)
          (cl-loop do (push (point) starts) (push (orgwarrior--hash-at-point) hashes)
                   while (org-get-next-sibling))
@@ -1642,7 +1690,7 @@ All IDs are resolved and the verb checked before anything changes.
 NEW, refile only: a heading to make first and refile into, see
 `orgwarrior--refile'."
   (when (and new (not (equal verb "refile")))
-    (user-error "Only refile makes a new heading"))
+    (user-error "Only refile can make a new heading"))
   (pcase verb
     ;; A note on its own: no change, the text logged as org's `note'.
     ("note" (let ((text (or note (string-join args " "))))
@@ -1662,8 +1710,8 @@ M-S-right does; promote, out of its parent to right after it.  Org's
 M-S-left would leave it in place, its later siblings becoming its
 children, so promote moves it below them first.  The result's :parent
 is the title of the heading it's now under, null at the top level."
-  (when (or args note) (user-error "%s takes nothing else" verb))
-  (when (cdr ids) (user-error "%s takes one task" verb))
+  (when (or args note) (user-error "%s takes nothing after it" verb))
+  (when (cdr ids) (user-error "%s works on one task at a time" verb))
   (let* ((index (orgwarrior--index))
          (entry (orgwarrior--resolve index (car ids))))
     (orgwarrior--check-writable (orgwarrior-entry-buffer entry))
@@ -1673,13 +1721,13 @@ is the title of the heading it's now under, null at the top level."
           ((or "up" "down")
            (condition-case nil
                (if (equal verb "up") (org-move-subtree-up) (org-move-subtree-down))
-             (error (user-error "Already the %s of its level" (if (equal verb "up") "first" "last")))))
+             (error (user-error "It's already the %s at its level" (if (equal verb "up") "first" "last")))))
           ("demote"
            (unless (save-excursion (org-get-previous-sibling))
-             (user-error "No heading above it at its level to go under"))
+             (user-error "There's no heading above it at its level to go under"))
            (org-demote-subtree))
           ("promote"
-           (unless old (user-error "Already at the top level"))
+           (unless old (user-error "It's already at the top level"))
            (while (save-excursion (org-get-next-sibling))
              (org-move-subtree-down))
            (org-promote-subtree)))
@@ -1733,7 +1781,7 @@ with it is fine once they're done first."
                      (run-hook-with-args-until-failure
                       'org-blocker-hook (list :type 'todo-state-change :from from :to to
                                               :position (point)))))))
-      (user-error "Org blocks %s from %s to %s: %s" (orgwarrior--title) (or from "none") to
+      (user-error "Org won't change %s from %s to %s, because %s" (orgwarrior--title) (or from "none") to
                   (if org-blocked-by-checkboxes "its checkboxes aren't all ticked"
                     (format "\"%s\" isn't done"
                             (replace-regexp-in-string "\\`\\*+ +" "" org-block-entry-blocking)))))))
@@ -1744,18 +1792,18 @@ a `user-error' if they don't make sense here."
   (let ((keyword (orgwarrior--keyword-named verb)))
     (cond
      (keyword
-      (when args (user-error "%s takes no arguments" verb))
+      (when args (user-error "%s takes nothing after it" verb))
       (lambda ()
         (orgwarrior--check-unblocked keyword)
         (org-todo keyword)))
      ((equal verb "nokeyword")  ; C-c C-t SPC: a plain heading again
-      (when args (user-error "nokeyword takes no arguments"))
+      (when args (user-error "nokeyword takes nothing after it"))
       (lambda () (org-todo "")))
      ((member verb '("sched" "due"))
       (let ((fn (if (equal verb "sched") #'org-schedule #'org-deadline))
             (date (string-join args " ")))
         (cond
-         ((string-empty-p date) (user-error "%s needs a date (or \"none\")" verb))
+         ((string-empty-p date) (user-error "%s needs a date, or \"none\" to remove it" verb))
          ((member date '("none" "-")) (lambda () (funcall fn '(4))))
          (t (pcase-let ((`(,input . ,exact) (orgwarrior--timestamp-input date))
                         (re (if (equal verb "sched") org-scheduled-time-regexp
@@ -1769,7 +1817,7 @@ a `user-error' if they don't make sense here."
      ((equal verb "when")
       (let ((date (string-join args " ")))
         (cond
-         ((string-empty-p date) (user-error "when needs a date (or \"none\")"))
+         ((string-empty-p date) (user-error "when needs a date, or \"none\" to remove it"))
          ((member date '("none" "-"))
           (lambda () (when-let* ((old (orgwarrior--when-line))) (delete-region (nth 0 old) (nth 1 old)))))
          (t (orgwarrior--when-action date)))))
@@ -1777,13 +1825,13 @@ a `user-error' if they don't make sense here."
      ((equal verb "prop")
       (let ((name (car args)) (value (string-join (cdr args) " ")))
         (orgwarrior--check-property-name name)
-        (cond ((string-empty-p value) (user-error "prop %s needs a value (or none)" name))
-              ((string-match-p "[\n\r]" value) (user-error "A property's value is one line of text: %s" name))
+        (cond ((string-empty-p value) (user-error "prop %s needs a value, or none to remove it" name))
+              ((string-match-p "[\n\r]" value) (user-error "A property's value has to be one line: %s" name))
               ((member value '("none" "-")) (lambda () (org-delete-property name)))
               (t (lambda () (org-entry-put nil name value))))))
      ((equal verb "effort")
       (let ((value (string-join args " ")))
-        (cond ((string-empty-p value) (user-error "effort needs a duration (0:30, 1h, or none)"))
+        (cond ((string-empty-p value) (user-error "effort needs a duration, like 0:30 or 1h, or none to remove it"))
               ((member value '("none" "-")) (lambda () (org-delete-property org-effort-property)))
               (t (lambda ()
                    (orgwarrior--check-effort value)
@@ -1797,14 +1845,14 @@ a `user-error' if they don't make sense here."
          ((member value (orgwarrior--priorities))
           (let ((p (if (orgwarrior--numeric-priorities-p) (string-to-number value) (string-to-char value))))
             (lambda () (org-priority p))))
-         (t (user-error "pri takes one of %s, up, down or none" (string-join (orgwarrior--priorities) " "))))))
+         (t (user-error "pri takes one of %s, or up, down or none" (string-join (orgwarrior--priorities) " "))))))
      ((equal verb "tag")
-      (unless args (user-error "tag needs +tag or -tag arguments"))
+      (unless args (user-error "tag needs tags to add or remove, like +home -work"))
       (let ((changes (mapcar (lambda (a)
                                (if (string-match "\\`\\([+-]\\)\\([[:alnum:]_@#%]+\\)\\'" a)
                                    (cons (match-string 2 a)
                                          (if (equal (match-string 1 a) "+") 'on 'off))
-                                 (user-error "Not +tag or -tag: %s" a)))
+                                 (user-error "%s isn't a tag to add or remove. Write +tag or -tag" a)))
                              args)))
         (let ((exclusive (seq-filter (lambda (g) (plist-get g :exclusive)) (orgwarrior--tag-groups))))
           ;; As org's fast tag selection does: a tag from a { } group replaces the others.
@@ -1816,7 +1864,7 @@ a `user-error' if they don't make sense here."
                     (dolist (other (plist-get g :tags))
                       (unless (equal other (car c)) (org-toggle-tag other 'off))))))
               (org-toggle-tag (car c) (cdr c)))))))
-     (t (user-error "Unknown verb: %s (keywords here: %s)"
+     (t (user-error "There's no command %s. The keywords here are: %s"
                     verb (downcase (string-join org-todo-keywords-1 " ")))))))
 
 (defun orgwarrior--all-tags ()
@@ -1892,7 +1940,7 @@ without one, and the priorities, highest first."
                            :warning_days org-deadline-warning-days)))
     (if file
         (let ((file (expand-file-name file)))
-          (unless (file-exists-p file) (user-error "File not found: %s" file))
+          (unless (file-exists-p file) (user-error "There's no file %s" file))
           (with-current-buffer (orgwarrior--file-buffer file) (here)))
       (with-temp-buffer
         (delay-mode-hooks (org-mode))
@@ -2033,19 +2081,19 @@ reads a bare time as no date."
                   (m (if (match-beginning 2) (string-to-number (match-string 2 last)) 0))
                   (ampm (match-string 3 last)))
               (unless (or (match-beginning 2) ampm)
-                (user-error "Not a time: %s (17:30, 5pm, -15m)" string))
+                (user-error "Can't read %s as a time. Try 17:30, 5pm or -15m" string))
               (when ampm
-                (unless (<= 1 h 12) (user-error "Not a time: %s" string))
+                (unless (<= 1 h 12) (user-error "Can't read %s as a time" string))
                 (setq h (+ (mod h 12) (if (equal ampm "pm") 12 0))))
-              (unless (and (< h 24) (< m 60)) (user-error "Not a time: %s" string))
+              (unless (and (< h 24) (< m 60)) (user-error "Can't read %s as a time" string))
               (let ((d (decode-time (if (cdr words)
                                         (nth 1 (orgwarrior--read-date (string-join (butlast words) " ")))
                                       day))))
                 (encode-time (list 0 m h (decoded-time-day d) (decoded-time-month d)
                                    (decoded-time-year d) nil -1 nil)))))
-           (t (user-error "Not a time: %s (17:30, 5pm, -15m, yesterday 17:30)" string)))))
+           (t (user-error "Can't read %s as a time. Try 17:30, 5pm, -15m or yesterday 17:30" string)))))
     (when (and time (not later) (time-less-p nil time))
-      (user-error "%s is later than now: a clock can't start later" (string-trim string)))
+      (user-error "%s is later than now, and a clock can't start in the future" (string-trim string)))
     time))
 
 (defun orgwarrior--forget-clock ()
@@ -2135,9 +2183,9 @@ end (null), minutes, stale, keyword, done}."
   "Of CLOCKS (open ones), the one ID's task has, else the only one."
   (let* ((entry (and id (orgwarrior--resolve index id)))
          (mine (if entry (seq-filter (lambda (c) (orgwarrior--clock-on-p c entry)) clocks) clocks)))
-    (cond ((null mine) (if entry (user-error "No clock running on %s" id) (user-error "No clock running")))
+    (cond ((null mine) (if entry (user-error "There's no clock running on %s" id) (user-error "There's no clock running")))
           ((cdr mine)
-           (user-error "Clocks are running on %d tasks; name one by its ID:\n%s"
+           (user-error "Clocks are running on %d tasks. Name one by its ID:\n%s"
                        (length mine) (orgwarrior--running-list index mine)))
           (t (car mine)))))
 
@@ -2171,9 +2219,9 @@ queues; return its data, :removed when org removed a zero-time line."
         (progn
           (mapc #'orgwarrior--check-writable buffers)
           (when-let* ((here (seq-find (lambda (c) (orgwarrior--clock-on-p c entry)) open)))
-            (user-error "Already clocked in on it, since %s" (orgwarrior--clock-hm (cdr here))))
+            (user-error "You're already clocked in on it, since %s" (orgwarrior--clock-hm (cdr here))))
           (when-let* ((later (and start (seq-find (lambda (c) (time-less-p start (cdr c))) open))))
-            (user-error "%s is before the running clock started (%s):\n%s"
+            (user-error "%s is before the running clock started (%s), on:\n%s"
                         (string-trim time) (orgwarrior--clock-hm (cdr later))
                         (orgwarrior--running-list index (list later))))
           (let ((closed (mapcar (lambda (c) (orgwarrior--close-clock index c start)) open)))
@@ -2201,7 +2249,7 @@ running.  The clock's data, with its end."
                (at (orgwarrior--clock-time time nil t)))
           (orgwarrior--check-writable buf)
           (when (and at (time-less-p at (cdr clock)))
-            (user-error "%s is before it started (%s)" (string-trim time) (orgwarrior--clock-hm (cdr clock))))
+            (user-error "%s is before the clock started (%s)" (string-trim time) (orgwarrior--clock-hm (cdr clock))))
           (prog1 (orgwarrior--close-clock index clock at)
             (orgwarrior--save (list buf))))
       (orgwarrior--free-clocks open))))
@@ -2282,12 +2330,12 @@ after S-up on a CLOCK line.  The task's clocks after."
     (orgwarrior--at entry
       (let* ((clocks (orgwarrior--entry-clocks))
              (clock (or (and (integerp n) (> n 0) (nth (1- n) clocks))
-                        (user-error "No clock %s on it; it has %d" n (length clocks)))))
+                        (user-error "There's no clock %s on it. It has %d" n (length clocks)))))
         (pcase-let ((`(,beg ,s ,e) clock))
           (goto-char beg)
           (when (and old (not (equal old (string-trim (buffer-substring-no-properties
                                                          beg (line-end-position))))))
-            (user-error "That clock changed since it was shown"))
+            (user-error "That clock changed since it was shown. Show the task again"))
           (let ((active (and (org-clocking-p) (eq (org-clocking-buffer) (current-buffer))
                              (= beg (save-excursion (goto-char org-clock-marker)
                                                     (line-beginning-position)))))
@@ -2298,8 +2346,8 @@ after S-up on a CLOCK line.  The task's clocks after."
               (when active (orgwarrior--forget-clock))
               (delete-region beg (line-beginning-position 2))
               (org-clock-remove-empty-clock-drawer))
-             ((not (or start end)) (user-error "Give a new start or end, or remove it"))
-             ((and end (not e)) (user-error "It's still running: clock out ends it"))
+             ((not (or start end)) (user-error "Give a new start or end, or remove the clock"))
+             ((and end (not e)) (user-error "That clock is still running. Clock out to end it"))
              (t
               (let* ((new-s (if start (orgwarrior--clock-time start s) s))
                      (new-e (and e (if end (orgwarrior--clock-time end new-s t) e))))
@@ -2337,7 +2385,7 @@ after S-up on a CLOCK line.  The task's clocks after."
            (or (match-beginning 1) (match-beginning 2)))
       (+ (* 60 (string-to-number (or (match-string 1 s) "0")))
          (string-to-number (or (match-string 2 s) "0"))))
-     (t (user-error "Not a duration: %s (1h30m, 45m, 1:30)" string)))))
+     (t (user-error "Can't read %s as a duration. Try 1h30m, 45m or 1:30" string)))))
 
 (defun orgwarrior--clock-add (id start end duration)
   "Log a finished clock on ID's task, time already spent: from START
@@ -2350,8 +2398,8 @@ clocks after."
          (entry (orgwarrior--resolve index id))
          (end (org-string-nw-p end))
          (duration (org-string-nw-p duration)))
-    (unless (org-string-nw-p start) (user-error "Give its start: 14:00, yesterday 14:00"))
-    (unless (xor end duration) (user-error "Give its end or its duration, one of them"))
+    (unless (org-string-nw-p start) (user-error "Give the time it started, like 14:00 or yesterday 14:00"))
+    (unless (xor end duration) (user-error "Give either the time it ended or how long it took"))
     (let* ((s (orgwarrior--clock-time start))
            (e (if duration
                   (time-add s (* 60 (orgwarrior--clock-duration duration)))
@@ -2365,7 +2413,7 @@ clocks after."
         (user-error "It would end (%s) before it starts (%s)"
                     (orgwarrior--clock-iso e) (orgwarrior--clock-iso s)))
       (when (time-less-p nil e)
-        (user-error "It would end (%s) later than now: clock in for time still to come"
+        (user-error "It would end (%s) later than now. For time that hasn't happened yet, clock in instead"
                     (orgwarrior--clock-iso e)))
       (orgwarrior--check-writable (orgwarrior-entry-buffer entry))
       (orgwarrior--at entry
@@ -2415,7 +2463,7 @@ today): (START END LABEL SPAN), END the start of the day after its last.
 Anything else is refused."
   (let ((span (orgwarrior--report-span words)))
     (unless span
-      (user-error "Not a span: %s (today, week, lastweek, month, 2026-10-20, 2026-W43, 2026-10, A..B)"
+      (user-error "Can't read %s as a span. Try today, week, lastweek, month, 2026-10-20, 2026-W43, 2026-10 or A..B"
                   words))
     (orgwarrior--span-range span)))
 
@@ -2520,17 +2568,17 @@ plists (:name :value).  Not inherited ones, nor org's special ones."
 
 (defun orgwarrior--check-property-name (name)
   (unless (and name (string-match-p "\\`[^ \t:]+\\'" name))
-    (user-error "Not a property name: %s" (or name "")))
+    (user-error "%s can't be a property name" (or name "")))
   (when (member (upcase name) org-special-properties)
-    (user-error "%s is org's own; its verb sets it" name)))
+    (user-error "%s is one of org's own properties. It has its own command" name)))
 
 (defun orgwarrior--check-effort (value)
   "VALUE is an effort org reads, one of Effort_ALL's where that's set."
   (let ((allowed (org-property-get-allowed-values nil org-effort-property)))
     (cond ((and allowed (not (member value allowed)))
-           (user-error "Effort is one of %s here" (string-join allowed " ")))
+           (user-error "Effort has to be one of %s here" (string-join allowed " ")))
           ((not (org-duration-p value))
-           (user-error "Not a duration: %s (0:30, 1:15, 2h)" value)))))
+           (user-error "Can't read %s as a duration. Try 0:30, 1:15 or 2h" value)))))
 
 (defun orgwarrior--props (id name)
   "For a property editor: {names: the property names in use across the
@@ -2639,12 +2687,12 @@ return it as a target.  Refused if one by that title is there already."
           (buf (plist-get place :buffer))
           (pos (cdr (plist-get place :key))))
       (when (string-empty-p title) (user-error "The new heading needs a title"))
-      (when (string-match-p "\n" title) (user-error "A heading is one line"))
+      (when (string-match-p "\n" title) (user-error "A heading has to be one line"))
       (orgwarrior--check-writable buf)
       (with-current-buffer buf
         (orgwarrior--check-event-title (car (split-string title)))
         (when (string-match-p "\\(?:\\`\\|[ \t]\\):[[:alnum:]_@#%:]+:\\'" title)
-          (user-error "A title ending in :word: would set tags"))
+          (user-error "A title can't end in :word:, since org would read it as tags"))
         (org-with-wide-buffer
          (let ((level (if pos (progn (goto-char pos) (org-get-valid-level (org-current-level) 1)) 1))
                (title-key (orgwarrior--title-of title)))
@@ -2712,9 +2760,9 @@ all the tasks already are (PARENTS, their `orgwarrior--parent-key's)."
     (funcall narrow (lambda (tg) (seq-some (lambda (p) (not (equal p (plist-get tg :key))))
                                            parents)))
     (cond
-     ((null targets) (user-error "No refile targets (see `org-refile-targets')"))
+     ((null targets) (user-error "There are no refile targets. Set org-refile-targets in your init file"))
      ((string-empty-p q) (user-error "refile needs a target:\n%s" (funcall list-them targets)))
-     ((null matches) (user-error "No refile target matches %S:\n%s" query (funcall list-them targets)))
+     ((null matches) (user-error "No refile target matches %S. The targets are:\n%s" query (funcall list-them targets)))
      ((cdr matches) (user-error "%S matches several refile targets:\n%s"
                                 query (funcall list-them matches)))
      (t (car matches)))))
@@ -2726,7 +2774,7 @@ each result carries the old ID too.  Tasks already under the target
 stay put, reported with :already.  NEW, an alist (title, captured),
 makes a plain heading titled so first, as the last child of the place
 ARGS names (one of the refile targets), and refiles into it."
-  (when note (user-error "refile takes no note"))
+  (when note (user-error "refile doesn't take a note"))
   (let* ((index (orgwarrior--index))
          (entries (orgwarrior--entries index ids))
          (target (orgwarrior--match-target (orgwarrior--refile-targets entries)
@@ -2826,8 +2874,8 @@ when a child leaves or arrives."
   "Give the one task in IDS the title ARGS, as `org-edit-headline' does:
 keyword, priority and tags stay, and so do statistics cookies.  The ID
 changes with the title, so the result carries the old one too."
-  (when note (user-error "rename takes no note"))
-  (when (cdr ids) (user-error "rename takes one task"))
+  (when note (user-error "rename doesn't take a note"))
+  (when (cdr ids) (user-error "rename works on one task at a time"))
   (let* ((title (string-trim (replace-regexp-in-string "[ \t\n]+" " " (string-join args " "))))
          (index (orgwarrior--index))
          (entry (orgwarrior--resolve index (car ids)))
@@ -2837,10 +2885,10 @@ changes with the title, so the result carries the old one too."
     (orgwarrior--at entry
       ;; Org would read these as a keyword or tags, not as part of the title.
       (when (member (car (split-string title)) org-todo-keywords-1)
-        (user-error "A title starting with %s would set the keyword; use the keyword verb"
+        (user-error "A title can't start with %s, since org would read it as the keyword. Set the keyword with its own command"
                     (car (split-string title))))
       (when (string-match-p orgwarrior--trailing-tags-re title)
-        (user-error "A title ending in :word: would set tags; use +tag"))
+        (user-error "A title can't end in :word:, since org would read it as tags. Add tags with +tag"))
       (let ((cookies (let ((heading (org-get-heading t t t t)) (start 0) found)
                        (while (string-match orgwarrior--cookie-re heading start)
                          (push (match-string 0 heading) found)
@@ -2861,7 +2909,7 @@ changes with the title, so the result carries the old one too."
 (defun orgwarrior--kill (ids args note)
   "Delete the tasks IDS, each with its whole subtree.  No undo: the CLI
 confirms first.  An ID inside another ID's subtree goes with it."
-  (when (or args note) (user-error "kill takes no arguments"))
+  (when (or args note) (user-error "kill takes nothing after it"))
   (let* ((index (orgwarrior--index))
          (entries (orgwarrior--entries index ids))
          (buffers (delete-dups (mapcar #'orgwarrior-entry-buffer entries)))
@@ -2907,7 +2955,7 @@ confirms first.  An ID inside another ID's subtree goes with it."
   "Archive the tasks IDS with `org-archive-subtree', to wherever
 `org-archive-location' (or an ARCHIVE property) says.  An ID inside
 another ID's subtree goes with it."
-  (when (or args note) (user-error "archive takes no arguments"))
+  (when (or args note) (user-error "archive takes nothing after it"))
   (require 'org-archive)
   (let* ((index (orgwarrior--index))
          (entries (orgwarrior--entries index ids))
@@ -3021,10 +3069,10 @@ from this edit."
   "The buffer to add to FILE (default `org-default-notes-file')."
   (let ((path (expand-file-name (or file org-default-notes-file))))
     (cond ((file-exists-p path) (orgwarrior--file-buffer path))
-          (file (user-error "File to add to not found: %s: create it, or set another in [add]"
-                            path))
-          (t (user-error "File to add to not found: %s (Emacs's org-default-notes-file): \
-set [add] file in orgwarrior's config.toml, or create it" path)))))
+          (file (user-error "There's no file to add to: %s doesn't exist. Create it, or set another file in [add] in orgwarrior's config"
+                            (abbreviate-file-name path)))
+          (t (user-error "There's no file to add to: %s (Emacs's org-default-notes-file) doesn't exist. \
+Create it, or set [add] file in orgwarrior's config.toml" (abbreviate-file-name path))))))
 
 (defun orgwarrior--add-place (file heading)
   "Where FILE and HEADING (as `orgwarrior--add' takes them) add to, as a
@@ -3034,7 +3082,7 @@ target plist."
       (orgwarrior--target
        (list nil (buffer-file-name) nil
              (and heading (or (org-with-wide-buffer (org-find-exact-headline-in-buffer heading nil t))
-                              (user-error "No heading %S in %s" heading (buffer-file-name)))))))))
+                              (user-error "There's no heading %S in %s" heading (buffer-file-name)))))))))
 
 (defun orgwarrior--add-places (file heading)
   "Where an add can go instead (its TO): where FILE and HEADING say,
@@ -3158,10 +3206,10 @@ as typed."
           (user-error "Can't add a task that's already %s" first))
          ((member first org-not-done-keywords)
           (setq keyword first words (cdr words))))))
-    (unless words (user-error "Empty title"))
+    (unless words (user-error "The title is empty"))
     (when event (orgwarrior--check-event-title (car words)))
     (when (and event (not (assoc "@" dates)))
-      (user-error "An event needs a date: @fri, @2026-10-15 14:00"))
+      (user-error "An event needs a date, like @fri or @2026-10-15 14:00"))
     (list :keyword keyword :title (string-join words " ") :tags tags :body body
           :when (orgwarrior--add-stamp (cdr (assoc "@" dates)))
           :scheduled (orgwarrior--add-stamp (cdr (assoc "s" dates)))
@@ -3172,14 +3220,14 @@ as typed."
 second line (a heading or drawer of its own), or trailing :word: with no
 TAGS after it to be the tags instead."
   (when (string-match-p "[\n\r]" title)
-    (user-error "A title is one line"))
+    (user-error "A title has to be one line"))
   (when (and (seq-empty-p tags) (string-match-p orgwarrior--trailing-tags-re title))
-    (user-error "A title ending in :word: would set tags; give them as tags")))
+    (user-error "A title can't end in :word:, since org would read it as tags. Give them as tags instead")))
 
 (defun orgwarrior--check-event-title (first)
   "Refuse a title without a keyword whose FIRST word org would read as one."
   (when (member first org-todo-keywords-1)
-    (user-error "A title without a keyword can't start with %s: org would read it as one" first)))
+    (user-error "A title without a keyword can't start with %s, since org would read it as one" first)))
 
 (defun orgwarrior--add-stamp (string)
   "The timestamp for STRING, a date with optional cookies, or nil."
@@ -3205,29 +3253,29 @@ would stamp one."
       (cond
        (event
         (when (or .keyword .scheduled .deadline .closed)
-          (user-error "An event has no keyword, scheduled, deadline or closed: just when"))
+          (user-error "An event only has a date (when), not a keyword, scheduled, deadline or closed"))
         (unless .when (user-error "An event needs a date")))
        ((and .closed (not (member keyword org-done-keywords)))
-        (user-error "Closed goes with a done keyword: %s" (string-join org-done-keywords " ")))
+        (user-error "Closed needs a done keyword: %s" (string-join org-done-keywords " ")))
        ((member keyword org-done-keywords))
        ((null keyword) (orgwarrior--check-event-title (car (split-string title))))
        ((not (member keyword org-not-done-keywords))
-        (user-error "Not a TODO keyword: %s" keyword))
-       (.when (user-error "A task has scheduled and deadline, not when")))
-      (when (string-empty-p title) (user-error "Empty title"))
+        (user-error "%s isn't a TODO keyword" keyword))
+       (.when (user-error "A task has scheduled and deadline dates, not when (that's for events)")))
+      (when (string-empty-p title) (user-error "The title is empty"))
       (orgwarrior--check-title title .tags)
       (when event (orgwarrior--check-event-title (car (split-string title))))
       (when (and .priority (not (member (upcase .priority) (orgwarrior--priorities))))
-        (user-error "Priority is one of %s" (string-join (orgwarrior--priorities) " ")))
+        (user-error "Priority has to be one of %s" (string-join (orgwarrior--priorities) " ")))
       (dolist (tag .tags)
         (unless (string-match-p "\\`[[:alnum:]_@#%]+\\'" tag)
-          (user-error "Not a tag: %s" tag)))
+          (user-error "%s can't be a tag" tag)))
       (pcase-dolist (`(,name . ,value) .properties)
         (unless (string-match-p "\\`[[:alnum:]_-]+\\'" (symbol-name name))
-          (user-error "Not a property name: %s" name))
+          (user-error "%s can't be a property name" name))
         (unless (and (stringp value) (not (string-match-p "\n" value)))
-          (user-error "A property's value is one line of text: %s" name)))
-      (when (and .effort event) (user-error "An event has no effort"))
+          (user-error "A property's value has to be one line: %s" name)))
+      (when (and .effort event) (user-error "An event can't have an effort"))
       (when .effort (orgwarrior--check-effort .effort))
       (list :keyword keyword :priority (and .priority (upcase .priority))
             :title title :tags (delete-dups (copy-sequence .tags))
@@ -3247,7 +3295,7 @@ its time if it has one), now if it's nil and `org-log-done' is set, as
     (if closed
         (let ((date (orgwarrior--read-date closed)))
           (when (time-less-p nil (nth 1 date))
-            (user-error "Closed %s is later than now" closed))
+            (user-error "The closed time %s is later than now" closed))
           (format-time-string (org-time-stamp-format (nth 2 date) t) (nth 1 date)))
       (and org-log-done (format-time-string (org-time-stamp-format t t))))))
 

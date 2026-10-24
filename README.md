@@ -24,8 +24,17 @@ to Claude.
 
 ## Quick start
 
-You'll need Emacs 29 or later running as a daemon (`emacs --daemon`, or
-your system's Emacs service). Then install orgwarrior one of these ways:
+You'll need Emacs 29 or later with its server running, and your org
+settings loaded in it. Any of these works:
+
+- `emacs --daemon`, or your system's Emacs service
+  (`systemctl --user enable --now emacs` on most Linux systems).
+- On a Mac with Homebrew, `brew services start emacs` (or
+  `brew services start emacs-plus@30` for emacs-plus).
+- If you keep Emacs open as an app, add `(server-start)` to your init
+  file. orgwarrior then works while Emacs is open.
+
+Then install orgwarrior one of these ways:
 
 ```sh
 brew install aleksozolins/tap/orgwarrior   # macOS or Linux
@@ -37,12 +46,13 @@ Installing orgwarrior-web or orgwarrior-mcp also installs this command, so
 you only need one of them.
 
 ```sh
+orgwarrior --check      # checks Emacs, your agenda files and the rest
 orgwarrior              # today's agenda
 orgwarrior help         # all the commands on one screen
 ```
 
-You'll see what your Emacs agenda shows. If every view is empty, Emacs has
-no `org-agenda-files` set.
+`--check` says what's missing and how to fix it. Once it's happy, you'll
+see what your Emacs agenda shows.
 
 To act on a task, use the ID shown beside it:
 
@@ -157,20 +167,24 @@ lists every key with comments.
 
 ## Troubleshooting
 
-- **"no Emacs daemon running on socket 'server'"**: start Emacs as a
-  daemon (`emacs --daemon`). If yours runs under another name
+Start with `orgwarrior --check`. It checks Emacs, your init file, your
+agenda files, where `add` writes and your config, and says what to fix.
+
+- **"no Emacs daemon is running"**: start Emacs as a daemon
+  (`emacs --daemon`), or add `(server-start)` to your init file if you
+  keep Emacs open as an app. If your daemon runs under another name
   (`emacs --daemon=work`), set `socket = "work"` in the config.
 - **Every view is empty**: Emacs has no `org-agenda-files`. Set them in
   your init file (`(setq org-agenda-files '("~/org"))`; a directory works),
   or add a file with `C-c [`, as you would for Org's agenda.
-- **"File to add to not found"**: `add` writes to `org-default-notes-file`
+- **"There's no file to add to"**: `add` writes to `org-default-notes-file`
   unless `[add] file` names another file. Point it at your inbox.
 - **"… is encrypted and not open in Emacs"**: an agenda file is `.gpg`,
   and orgwarrior can't type its passphrase. Open it in Emacs once (it stays
   decrypted while Emacs runs), or take it out of `org-agenda-files`.
-- **"Emacs tried to prompt"**: something in your Emacs, such as a hook,
-  wanted to ask a question. orgwarrior can't answer prompts, so it stops
-  and tells you which one it was.
+- **"Emacs tried to ask a question"**: something in your Emacs, such as a
+  hook, wanted to ask something. orgwarrior can't answer, so it stops and
+  tells you what the question was.
 - **Colors look wrong**: `color = "never"` or `NO_COLOR=1` turns them off,
   and `[colors]` changes any of them.
 

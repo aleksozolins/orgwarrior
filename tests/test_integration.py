@@ -53,7 +53,7 @@ def test_errors(daemon, capsys):
     socket, _ = daemon
     assert run(capsys, "-s", socket, "ff00ff", "done")[2] == "orgwarrior: No task ff00ff\n"
     code, _, err = run(capsys, "-s", socket, '""')
-    assert code == 1 and "Search for what?" in err
+    assert code == 1 and "needs some words" in err
     assert run(capsys, "-s", "orgwarrior-test-no-such-daemon")[2].startswith("orgwarrior: no Emacs daemon")
 
 
@@ -87,7 +87,7 @@ def test_clock(daemon, capsys):
     assert code == 0 and "No clocks." in out
     assert "CLOCK" not in (org / "tasks.org").read_text()
     code, _, err = run(capsys, "-s", socket, "clock", "out")
-    assert code == 1 and err == "orgwarrior: No clock running\n"
+    assert code == 1 and err == "orgwarrior: There's no clock running\n"
 
 
 def test_report(daemon, capsys):

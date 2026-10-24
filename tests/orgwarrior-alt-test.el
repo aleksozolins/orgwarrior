@@ -74,7 +74,7 @@
       (orgwarrior-test-ok :op "act" :ids (vector id) :verb "fixed" :args [])
       (should (equal (orgwarrior-alt-line dir "bugs.org" "Crash on save") "** FIXED Crash on save"))
       ;; Another file's keyword isn't this one's.
-      (should (string-match-p "Unknown verb"
+      (should (string-match-p "There's no command"
                               (orgwarrior-test-error :op "act" :ids (vector (orgwarrior-test-id "Slow startup"))
                                                      :verb "waiting" :args []))))
     (should (equal (plist-get (orgwarrior-test-ok :op "keywords" :file (expand-file-name "bugs.org" dir))

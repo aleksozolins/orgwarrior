@@ -140,21 +140,21 @@ def load(path: Path | None = None) -> Config:
         elif key == "colors":
             for name, spec in _check(path, key, value, dict).items():
                 if name not in ROLES and not KEYWORD_RE.fullmatch(name):
-                    raise ConfigError(f"{path}: [colors] {name!r} is neither one of "
-                                      f"{', '.join(ROLES)} nor an uppercase TODO keyword")
+                    raise ConfigError(f"{path}: [colors] {name!r} isn't a role or an uppercase TODO keyword. "
+                                      f"The roles are {', '.join(ROLES)}")
                 try:
                     config.colors[name] = sgr(_check(path, f"[colors] {name}", spec, str))
                 except ValueError:
                     raise ConfigError(
-                        f"{path}: [colors] {name} = {spec!r}: use \"none\", #rrggbb, on-#rrggbb or words "
-                        f"from {', '.join(_SGR)}") from None
+                        f"{path}: [colors] {name} = {spec!r} isn't a color. Use \"none\", #rrggbb, on-#rrggbb, "
+                        f"or words from {', '.join(_SGR)}") from None
         elif key == "web":
             config.web = _check(path, key, value, dict)
         elif key == "views":
             if not isinstance(value, dict) or not all(
                 isinstance(v, str) for v in value.values()
             ):
-                raise ConfigError(f"{path}: [views] maps names to agenda command keys (strings)")
+                raise ConfigError(f"{path}: each [views] entry is a name and an agenda command key, as a string: dash = \"d\"")
             config.views = dict(value)
         elif key == "add":
             for name, v in _check(path, key, value, dict).items():
@@ -170,17 +170,17 @@ def load(path: Path | None = None) -> Config:
                         elif ename == "captured":
                             config.event_captured = _check(path, "[add.event] captured", ev, bool)
                         else:
-                            raise ConfigError(f"{path}: unknown key [add.event] {ename!r}")
+                            raise ConfigError(f"{path}: [add.event] has no key {ename!r}")
                 else:
-                    raise ConfigError(f"{path}: unknown key [add] {name!r}")
+                    raise ConfigError(f"{path}: [add] has no key {name!r}")
         elif key == "refile":
             for name, v in _check(path, key, value, dict).items():
                 if name in ("new_in", "new_suffix", "usual"):
                     setattr(config, f"refile_{name}", _check(path, f"[refile] {name}", v, str))
                 else:
-                    raise ConfigError(f"{path}: unknown key [refile] {name!r}")
+                    raise ConfigError(f"{path}: [refile] has no key {name!r}")
         else:
-            raise ConfigError(f"{path}: unknown key {key!r}")
+            raise ConfigError(f"{path}: there's no key {key!r} (orgwarrior help config lists them)")
 
     if config.add_file:
         config.add_file = str(Path(config.add_file).expanduser())
