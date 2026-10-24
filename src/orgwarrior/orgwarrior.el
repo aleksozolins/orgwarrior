@@ -3074,9 +3074,13 @@ from this edit."
     (cond ((file-exists-p path) (orgwarrior--file-buffer path))
           (file (user-error "There's no file to add to: %s doesn't exist. Create it, or set another file in [add] in orgwarrior's config"
                             (abbreviate-file-name path)))
-          (t (user-error "There's no file to add to: %s (Emacs's org-default-notes-file) doesn't exist. \
+          ;; Org's own default, ~/.notes: nobody set it, so say how.  Set, it only needs making.
+          ((equal (file-name-nondirectory path) ".notes")
+           (user-error "There's no file to add to: %s (Emacs's org-default-notes-file) doesn't exist. \
 Point it at your inbox in your init file, (setq org-default-notes-file \"~/org/inbox.org\"), \
-or set [add] file in orgwarrior's config.toml, file = \"~/org/inbox.org\". The file has to exist" (abbreviate-file-name path))))))
+or set [add] file in orgwarrior's config.toml, file = \"~/org/inbox.org\". Then create that file" (abbreviate-file-name path)))
+          (t (user-error "There's no file to add to: %s (Emacs's org-default-notes-file) doesn't exist yet. Create it; it can be empty"
+                         (abbreviate-file-name path))))))
 
 (defun orgwarrior--add-place (file heading)
   "Where FILE and HEADING (as `orgwarrior--add' takes them) add to, as a

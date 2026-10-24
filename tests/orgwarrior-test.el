@@ -2100,7 +2100,11 @@ file (a real config's inbox) is an error, the file as it was."
                                               :file (expand-file-name "inbox.org" dir))))
     (should (string-match-p "no file to add to" (orgwarrior-test-error :op "add" :text "x"
                                                          :file (expand-file-name "nope.org" dir))))
+    ;; Set but not made: make it.  Org's own default, ~/.notes: set it first.
     (let ((org-default-notes-file (expand-file-name "nope.org" dir)))
+      (should (string-match-p "nope\\.org (Emacs's org-default-notes-file) doesn't exist yet\\. Create it"
+                              (orgwarrior-test-error :op "add" :text "x"))))
+    (let ((org-default-notes-file (expand-file-name ".notes" dir)))
       (should (string-match-p "set \\[add\\] file" (orgwarrior-test-error :op "add" :text "x"))))
     ;; No file: org-default-notes-file.
     (let ((org-default-notes-file (expand-file-name "calendar.org" dir)))

@@ -4,6 +4,7 @@ one of the things it reports."""
 
 import os
 import shutil
+import textwrap
 from pathlib import Path
 
 from orgwarrior import OrgwarriorError, __version__
@@ -137,7 +138,10 @@ def report(socket: str | None, painter) -> int:
     for status, what, lines in found:
         print(f"  {painter.wrap(status.ljust(4), ROLE[status])}  {what}")
         for line in lines:
-            print(f"        {line}")
+            # Messages from Emacs come as one long line; the advice written here
+            # is wrapped already, and its code lines keep their indent.
+            for part in textwrap.wrap(line, 70, break_on_hyphens=False, break_long_words=False) if len(line) > 70 else [line]:
+                print(f"        {part}")
     fails = sum(status == FAIL for status, _, _ in found)
     warns = sum(status == WARN for status, _, _ in found)
     print()
