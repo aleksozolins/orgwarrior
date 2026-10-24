@@ -78,7 +78,7 @@ def render() -> str:
         ".nr HY 0", ".ds AD l",
         f'.TH ORGWARRIOR 1 "" "orgwarrior {__version__}" "User Commands"',
         ".SH NAME",
-        "orgwarrior \\- the Org agenda from the command line, through your running Emacs",
+        "orgwarrior \\- your Org agenda from the command line, run by your Emacs daemon",
         ".SH SYNOPSIS",
         ".B orgwarrior", "[\\fIVIEW\\fR]", ".br",
         ".B orgwarrior", "\\fIID\\fR... \\fIVERB\\fR [\\fIARGS\\fR]", ".br",
@@ -87,15 +87,16 @@ def render() -> str:
         ".SH DESCRIPTION",
         ".PP",
         esc("A taskwarrior-style command line for Org mode's agenda. Every task gets a short "
-            "ID, and orgwarrior ID VERB acts on it. orgwarrior never parses your files: it "
-            "sends each command to your running Emacs daemon with emacsclient, where Org does "
-            "the work (org-agenda, org-todo, org-schedule, org-read-date), so your agenda "
-            "files, TODO keywords, custom agenda commands, logging and habits apply as in "
-            "Emacs. It loads its own elisp into the daemon; nothing goes in your init file."),
+            "ID, and orgwarrior ID VERB acts on it. orgwarrior doesn't read your org files "
+            "itself. It sends each command to your running Emacs daemon with emacsclient, and "
+            "Org does the work (org-agenda, org-todo, org-schedule, org-read-date). Your "
+            "agenda files, TODO keywords, custom agenda commands, logging and habits all work "
+            "as they do in Emacs. orgwarrior loads its own code into the daemon, so you don't "
+            "need to change your init file."),
         ".PP",
-        esc("IDs are short hashes of a task's file and title: the same in every view and "
-            "from one day to the next. Changing a keyword, tags or dates keeps the ID; "
-            "renaming or refiling changes it, and the new one is printed."),
+        esc("IDs are short hashes of a task's file and title, so they're the same in every "
+            "view and from one day to the next. Changing a keyword, tags or dates keeps the "
+            "ID. Renaming or refiling a task changes it, and the new one is printed."),
         ".SH EXAMPLES",
         ".PD 0",  # one example a line, as the help has them
         *main_sections(),
@@ -107,19 +108,19 @@ def render() -> str:
         lines += [f".SS {name}", ".nf", *(f".B {esc(s)}" for s in synopsis), ".fi", *block(body)]
     lines += [
         ".SH OPTIONS",
-        ".TP", ".BI \\-m \" NOTE\"", "The note, for done, wait and the other keywords (help notes).",
-        ".TP", ".BI \\-s \" SOCKET\"", "The Emacs server socket's name, if not the default (also socket in the config, or ORGWARRIOR_SOCKET).",
-        ".TP", ".B \\-\\-help", "This help, or after a command its own: orgwarrior add \\-\\-help.",
-        ".TP", ".B \\-\\-version", "The version.",
+        ".TP", ".BI \\-m \" NOTE\"", "A note to add with done, wait or any other keyword (help notes).",
+        ".TP", ".BI \\-s \" SOCKET\"", "The Emacs server socket's name, if it isn't the default. You can also set socket in the config, or ORGWARRIOR_SOCKET.",
+        ".TP", ".B \\-\\-help", "Show the help. After a command, show that command's help: orgwarrior add \\-\\-help.",
+        ".TP", ".B \\-\\-version", "Show the version.",
         ".SH FILES",
         ".TP", ".I $XDG_CONFIG_HOME/orgwarrior/config.toml",
-        "The config, all of it optional (default ~/.config/orgwarrior/config.toml); see the config topic above.",
+        "The config file, which is optional (default ~/.config/orgwarrior/config.toml). See the config topic above.",
         ".SH ENVIRONMENT",
-        ".TP", ".B ORGWARRIOR_CONFIG", "The config file, instead of the default.",
+        ".TP", ".B ORGWARRIOR_CONFIG", "Use this config file instead of the default.",
         ".TP", ".B ORGWARRIOR_SOCKET", "The Emacs server socket's name.",
-        ".TP", ".B NO_COLOR", "No color, as color = \"never\" does.",
+        ".TP", ".B NO_COLOR", "Turn off color, like color = \"never\".",
         ".SH EXIT STATUS",
-        "0 on success; 1 when Emacs or Org refuses (an unknown ID, a bad date), or no daemon answers; 2 for a command line orgwarrior can't read.",
+        "0 on success. 1 when Emacs or Org refuses (an unknown ID, a bad date) or no daemon answers. 2 when orgwarrior can't understand the command line.",
         ".SH SEE ALSO",
         ".BR emacs (1),", ".BR emacsclient (1);",
         f"orgwarrior-web, the same agenda as a web page: {esc(URL)}\\-web",

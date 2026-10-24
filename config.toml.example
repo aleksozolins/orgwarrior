@@ -1,19 +1,19 @@
-# ~/.config/orgwarrior/config.toml -- every key is optional.
+# ~/.config/orgwarrior/config.toml. Every key is optional.
 
-# default_view = "today"          # bare `orgwarrior`: a built-in view or a [views] name
-# socket = "server"               # Emacs server socket name
-# prefix_format = " %-10:c%?-6t% s"  # compact org-agenda-prefix-format, orgwarrior only
-# tags = "inline"                 # or "right": right-aligned, like Emacs
-# time_grid = false
+# default_view = "today"          # what plain `orgwarrior` shows: a built-in view or a [views] name
+# socket = "server"               # the Emacs server socket's name
+# prefix_format = " %-10:c%?-6t% s"  # a compact org-agenda-prefix-format, used only by orgwarrior
+# tags = "inline"                 # or "right" to right-align them, like Emacs
+# time_grid = false               # true shows org's time grid
 # color = "auto"                  # or "always", "never"
 
-[views]                           # name -> org-agenda-custom-commands key
+[views]                           # name = an org-agenda-custom-commands key
 # dash = "d"
 # inbox = "i"
 
 [add]                             # where `orgwarrior add` writes
 # file = "~/org/inbox.org"        # default: org-default-notes-file
-# heading = "Tasks"               # file under this heading; default: top level
+# heading = "Tasks"               # file new tasks under this heading (default: top level)
 # captured = true                 # add a :CAPTURED: timestamp property
 
 [add.event]                       # where `orgwarrior add event` writes
@@ -21,29 +21,33 @@
 # heading = "Events"
 # captured = false
 
-[refile]                          # refile --new: a new heading to refile into
-# usual = "tasks"                 # a front end's first refile choice, matched as
-                                  # refile matches (a heading wins: tasks.org › Tasks)
-# new_in = "projects.org"         # where it goes; default: asked (a refile place)
-# new_suffix = " [/]"             # after its title; [add] captured stamps it too
+[refile]
+# usual = "tasks"                 # the target a front end offers first, matched the way
+                                  # refile matches it (a heading wins: tasks.org › Tasks)
+# new_in = "projects.org"         # where refile --new makes its heading (default: it asks)
+# new_suffix = " [/]"             # added after that heading's title
 
-[colors]                          # role or TODO keyword -> color
+[colors]                          # a role or TODO keyword = a color
 # NEXT = "bold cyan"
 # id = "blue"
 # todo = "bold #ff8f88"
-# habit-ready = "on-green"        # a habit's days: as Emacs draws them, unless set
+# habit-ready = "on-green"        # a habit's days (default: as Emacs draws them)
 
-[web]                             # orgwarrior-web's
-# name = "Sam"                    # whose list: its page's header, the installed app's name
+[web]                             # settings for orgwarrior-web
+# name = "Sam"                    # whose list: shown in the page's title and the installed app's name
 
-[web.tabs]                        # orgwarrior-web's tab row, in order: label = query
-# today = "today"                 # default: today week all, then [views]
-# next = "next"                   # anything the query box takes: a view,
-# home = "+@home"                 # keywords, a tag search, a date, words
+[web.tabs]                        # orgwarrior-web's tabs, in order: label = query
+# today = "today"                 # default: today, week, all, then your [views]
+# next = "next"                   # anything the search box takes: a view, keywords,
+# home = "+@home"                 # a tag search, a date, or words
+
+[web.keys]                        # orgwarrior-web's keys (see its docs/keys.md)
+# preset = "evil"                 # evil-collection's agenda keys
+# kill = "C-d"                    # keys of your own, as Emacs writes them
 
 [web.calendar]                    # orgwarrior-web's calendar feed
-# keywords = true                 # "NEXT Call dentist" in titles
-# deadlines = true                # deadlines as events, not only scheduled dates
-# alarms = true                   # a deadline's warning (-3d) as an alarm
-# alarm_time = "09:00"            # when, for an all-day deadline
-# deadline_prefix = "Due: "       # a deadline's title starts with it ("" for none)
+# keywords = true                 # put the keyword in titles: "NEXT Call dentist"
+# deadlines = true                # show deadlines as events, not just scheduled dates
+# alarms = true                   # turn a deadline's warning (-3d) into an alarm
+# alarm_time = "09:00"            # the alarm's time, for a deadline with no time
+# deadline_prefix = "Due: "       # what a deadline's title starts with ("" for nothing)
