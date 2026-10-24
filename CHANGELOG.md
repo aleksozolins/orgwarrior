@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.3 (2026-10-24)
+
+From a newcomer's second run through the quick start:
+
+- When `org-default-notes-file` is set but the file doesn't exist yet, the
+  message just says to create it (it can be empty). Only org's own default,
+  `~/.notes`, still gets the advice on where to point it.
+- `--check` wraps a long message from Emacs instead of printing it on one
+  line.
+
 ## 0.4.2 (2026-10-24)
 
 From a newcomer's run through the quick start:
