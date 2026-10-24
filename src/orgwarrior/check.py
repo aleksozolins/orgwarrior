@@ -68,8 +68,9 @@ def findings(socket: str | None) -> list[tuple[str, str, list[str]]]:
     else:
         out.append((WARN, "Emacs loaded no init file", [
             "So none of your org settings are loaded. Put them in",
-            "~/.config/emacs/init.el (if there's a ~/.emacs.d/ or ~/.emacs,",
-            "Emacs reads that instead), then restart Emacs."]))
+            "~/.emacs.d/init.el, which Emacs always reads, then restart Emacs.",
+            "(~/.config/emacs/init.el works only while there's no ~/.emacs.d,",
+            "and Emacs often makes that folder itself.)"]))
 
     files = s["files"]
     if s["agenda_setting"] == "unset":
@@ -106,6 +107,11 @@ def findings(socket: str | None) -> list[tuple[str, str, list[str]]]:
             out.append((FAIL, f"[views] names agenda commands Emacs doesn't have: {', '.join(missing)}", [
                 "Each value has to be a key from your org-agenda-custom-commands."]))
 
+    if not s.get("log_done", True):
+        out.append((WARN, "org-log-done isn't set, so finished tasks get no CLOSED time", [
+            "orgwarrior closed lists tasks by that time, so it stays empty. Add",
+            "this to your init file to have org stamp it:",
+            "  (setq org-log-done 'time)"]))
     if not s["refile"]:
         out.append((WARN, "org-refile-targets isn't set, so refile only offers headings in the task's own file", [
             "To refile anywhere in your agenda files, add this to your init file:",

@@ -24,6 +24,12 @@ to Claude.
 
 ## Quick start
 
+Want the web page or Claude too? Install
+[orgwarrior-web](https://github.com/aleksozolins/orgwarrior-web) or
+[orgwarrior-mcp](https://github.com/aleksozolins/orgwarrior-mcp) instead of
+this. Each one brings the `orgwarrior` command along, and installing more
+than one of them with pipx or uv fails, since they'd share it.
+
 You'll need Emacs 29 or later with its server running, and your org
 settings loaded in it. Any of these works:
 
@@ -34,12 +40,23 @@ settings loaded in it. Any of these works:
 - If you keep Emacs open as an app, add `(server-start)` to your init
   file. orgwarrior then works while Emacs is open.
 
-Then install orgwarrior one of these ways:
+If you're new to org, these lines in `~/.emacs.d/init.el` are enough to
+start with (restart Emacs after changing it):
+
+```elisp
+(setq org-agenda-files '("~/org")              ; every .org file in ~/org
+      org-default-notes-file "~/org/inbox.org"  ; where orgwarrior add writes
+      org-refile-targets '((org-agenda-files :maxlevel . 2))
+      org-log-done 'time)                       ; when you finished, for closed
+```
+
+Create `~/org/inbox.org` too, even empty. Then install orgwarrior one of
+these ways:
 
 ```sh
 brew install aleksozolins/tap/orgwarrior   # macOS or Linux
 yay -S orgwarrior                          # Arch, with any AUR helper
-pipx install orgwarrior                    # Python 3.11+; uv tool install works too
+pipx install orgwarrior                    # Python 3.11+, or: uv tool install orgwarrior
 ```
 
 Installing orgwarrior-web or orgwarrior-mcp also installs this command, so
@@ -59,11 +76,15 @@ To act on a task, use the ID shown beside it:
 ```sh
 orgwarrior c1 done -m "booked for the 20th"
 orgwarrior 32 sched fri
-orgwarrior add NEXT call the dentist :@phone: s:fri
+orgwarrior add call the dentist :@phone: s:fri
 ```
 
+A task can start with any of your TODO keywords (`orgwarrior add NEXT call
+the dentist`). Out of the box, org's are TODO and DONE, and a word that
+isn't one of yours stays part of the title.
+
 To update, use the tool you installed with: `brew upgrade`, your AUR
-helper, or `pipx upgrade orgwarrior`. `alias ow=orgwarrior` saves typing.
+helper, `pipx upgrade orgwarrior`, or `uv tool upgrade orgwarrior`. `alias ow=orgwarrior` saves typing.
 
 Homebrew and the AUR install the man page. With pipx or uv, copy it to
 where `man` looks, and do it again after each upgrade:
@@ -86,10 +107,10 @@ orgwarrior help --man > ~/.local/share/man/man1/orgwarrior.1
 | `orgwarrior c1 done`, `orgwarrior c1 wait` | sets any of your TODO keywords, asking for a note where org would |
 | `orgwarrior c1 sched fri 14:00`, `orgwarrior c1 due +2w` | sets dates, written the way org reads them |
 | `orgwarrior c1 +@home -someday`, `orgwarrior c1 pri A` | changes tags and priority |
-| `orgwarrior c1 refile projects` | refiles under a heading; with no target, lists them |
+| `orgwarrior c1 refile projects` | refiles under a matching heading, or to the top of a matching file; with no target, lists them |
 | `orgwarrior c1 clock in`, `orgwarrior clock out` | clocks in and out; `orgwarrior clocked week` totals the time |
 | `orgwarrior c1 clocks add yesterday 14:00-15:30` | logs time already spent, without touching a running clock |
-| `orgwarrior closed week` | lists what you finished, day by day, archived tasks included |
+| `orgwarrior closed week` | lists what you finished, day by day, archived tasks included (needs `org-log-done`) |
 | `orgwarrior c1 edit` | opens the task in Emacs, in this terminal |
 | `orgwarrior add event Dentist @fri 10:30` | adds an event (a plain timestamp, no keyword) |
 | `orgwarrior c1 when sat 10:30` | moves an event to another date |

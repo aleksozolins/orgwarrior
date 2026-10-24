@@ -1941,6 +1941,7 @@ tags read as org reads them; a star line inside a block stays its text."
       (should-not (plist-get s :missing))
       (should (string-match-p "inbox\\.org\\'" (plist-get (plist-get s :add) :file)))
       (should (eq (plist-get s :refile) t))
+      (should (eq (plist-get s :log_done) t))
       (should (member "d" (plist-get s :commands))))
     ;; A heading [add] names that isn't there: the reason, not a file.
     (let ((s (orgwarrior-test-ok :op "setup" :file (expand-file-name "inbox.org" dir) :heading "Nope")))

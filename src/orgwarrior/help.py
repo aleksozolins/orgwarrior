@@ -17,7 +17,7 @@ views
   orgwarrior wait                 tasks in a state; next +@phone with a tag
   orgwarrior +@phone              tasks with a tag; +a-b, '+a|b'
   orgwarrior flu shot             search the text ('"fri"' for a date word)
-  orgwarrior inbox                a view from [views] in your config
+  orgwarrior inbox                a view of your own, if [views] has one
   orgwarrior projects.org         a file's outline
   orgwarrior clocked week         time clocked
   orgwarrior closed week          what you finished, archived tasks included

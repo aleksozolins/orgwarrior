@@ -8,7 +8,8 @@ from orgwarrior import check, cli, emacs
 GOOD = {"emacs": "30.1", "org": "9.7", "daemon": True, "socket": "/run/user/1000/emacs/server",
         "init": "~/.config/emacs/init.el", "agenda_setting": "list", "missing": [],
         "files": ["~/org/inbox.org", "~/org/tasks.org"], "read_only": [], "encrypted": [],
-        "unsaved": [], "add": {"file": "~/org/inbox.org"}, "refile": True, "commands": ["d"]}
+        "unsaved": [], "add": {"file": "~/org/inbox.org"}, "refile": True, "log_done": True,
+        "commands": ["d"]}
 
 
 @pytest.fixture
@@ -32,13 +33,14 @@ def test_good_setup(setup):
 
 
 def test_first_run_mistakes(setup):
-    setup.update(init=None, agenda_setting="unset", files=[], refile=False,
+    setup.update(init=None, agenda_setting="unset", files=[], refile=False, log_done=False,
                  add={"error": "There's no file to add to"})
     found = statuses()
     assert found["Emacs loaded no init file"] == "warn"
     assert found["org-agenda-files isn't set, so every view is empty"] == "fail"
     assert found["add has nowhere to write"] == "warn"
     assert any(s == "warn" and w.startswith("org-refile-targets") for w, s in found.items())
+    assert any(s == "warn" and w.startswith("org-log-done") for w, s in found.items())
 
 
 def test_missing_agenda_path_warns(setup):

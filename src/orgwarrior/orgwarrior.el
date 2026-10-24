@@ -148,6 +148,8 @@ of the things it reports."
                                 (buffer-file-name (plist-get (orgwarrior--add-place file heading) :buffer))))
                  (error (list :error (error-message-string err))))
           :refile (if org-refile-targets t :false)
+          ;; closed's reports read the CLOSED stamp, which org writes only with this.
+          :log_done (if org-log-done t :false)
           :commands (vconcat (seq-filter #'stringp (mapcar #'car org-agenda-custom-commands))))))
 
 (defun orgwarrior--dispatch (req)
@@ -3073,7 +3075,8 @@ from this edit."
           (file (user-error "There's no file to add to: %s doesn't exist. Create it, or set another file in [add] in orgwarrior's config"
                             (abbreviate-file-name path)))
           (t (user-error "There's no file to add to: %s (Emacs's org-default-notes-file) doesn't exist. \
-Create it, or set [add] file in orgwarrior's config.toml" (abbreviate-file-name path))))))
+Point it at your inbox in your init file, (setq org-default-notes-file \"~/org/inbox.org\"), \
+or set [add] file in orgwarrior's config.toml, file = \"~/org/inbox.org\". The file has to exist" (abbreviate-file-name path))))))
 
 (defun orgwarrior--add-place (file heading)
   "Where FILE and HEADING (as `orgwarrior--add' takes them) add to, as a
