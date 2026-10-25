@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.4 (2026-10-25)
+
+- The tests pass on a system that isn't in English. Org writes weekday
+  names in the system's language, and the tests expected English ones, so
+  the AUR package failed to build there (#1).
+
 ## 0.4.3 (2026-10-24)
 
 From a newcomer's second run through the quick start:
