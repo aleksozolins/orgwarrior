@@ -10,6 +10,9 @@
 (require 'org-agenda)
 (require 'org-habit)  ; a habit's graph, as most org setups have it
 
+;; Org writes weekday names in the system's language; the tests expect English.
+(setq system-time-locale "C")
+
 (defconst orgwarrior-fixture-source
   (expand-file-name "fixtures/org" (file-name-directory (or load-file-name buffer-file-name))))
 
