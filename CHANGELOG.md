@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.1 (2026-10-26)
+
+- On a Mac, a long view (a busy day's agenda, say) could fail with "Emacs
+  sent a reply orgwarrior doesn't understand". emacsclient on macOS garbles
+  long results, so Emacs now writes its reply to a private temporary file
+  instead of printing it.
+
 ## 0.5.0 (2026-10-25)
 
 - `entries_with(prop, None)` in the Python API finds every entry with the

@@ -1,13 +1,12 @@
 """Talking to the Emacs daemon through emacsclient.
 
 Every call sends one JSON request to `orgwarrior-call` (orgwarrior.el) and gets one
-JSON reply back.  User text only ever crosses as the contents of an elisp
-string literal, never spliced into code.
+JSON reply back, written to a file.  User text only ever crosses as the
+contents of an elisp string literal, never spliced into code.
 """
 
 import json
 import os
-import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -30,21 +29,12 @@ def elisp_string(s: str) -> str:
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def read_elisp_string(printed: str) -> str:
-    """Undo emacsclient's printing of a string result.
-
-    `prin1` escapes only backslash and double quote; orgwarrior.el keeps its
-    replies ASCII with no control characters, so nothing else appears.
-    """
-    printed = printed.strip()
-    if len(printed) < 2 or printed[0] != '"' or printed[-1] != '"':
-        raise EmacsError(f"Emacs sent a reply orgwarrior doesn't understand: {printed[:200]}")
-    return re.sub(r"\\(.)", r"\1", printed[1:-1], flags=re.DOTALL)
-
-
-def expression(request: dict, path: str | None = None) -> str:
+def expression(request: dict, path: str | None, out: str) -> str:
     """The form to evaluate: (re)load orgwarrior.el if this copy isn't loaded,
-    then call it with REQUEST, or with the JSON in the file at PATH."""
+    then call it with REQUEST, or with the JSON in the file at PATH, and
+    write the reply to the file OUT.  Not printed: emacsclient on macOS
+    reads its socket 1 KiB at a time and garbles a message split across two
+    reads, so a long reply came back cut ("Unknown message: -")."""
     st = ELISP.stat()
     stamp = elisp_string(f"{ELISP}:{st.st_mtime_ns}:{st.st_size}")
     arg = (elisp_string(json.dumps(request, ensure_ascii=False)) if path is None else
@@ -55,7 +45,9 @@ def expression(request: dict, path: str | None = None) -> str:
         f" (unless (equal (bound-and-true-p orgwarrior--stamp) {stamp})"
         f" (load {elisp_string(str(ELISP))} nil t t)"
         f" (setq orgwarrior--stamp {stamp}))"
-        f" (orgwarrior-call {arg}))"
+        " (let ((coding-system-for-write 'utf-8-unix))"
+        f" (write-region (orgwarrior-call {arg}) nil {elisp_string(out)} nil 0))"
+        " nil)"
     )
 
 
@@ -77,7 +69,9 @@ def call(request: dict, socket: str | None = None, timeout: float = TIMEOUT):
         fd, path = tempfile.mkstemp(prefix="orgwarrior-", suffix=".json")  # 0600
         with os.fdopen(fd, "wb") as f:
             f.write(encoded)
-    cmd += ["--eval", expression(request, path)]
+    fd, out = tempfile.mkstemp(prefix="orgwarrior-reply-", suffix=".json")
+    os.close(fd)
+    cmd += ["--eval", expression(request, path, out)]
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=timeout)
     except FileNotFoundError:
@@ -87,6 +81,9 @@ def call(request: dict, socket: str | None = None, timeout: float = TIMEOUT):
     finally:
         if path:
             os.unlink(path)
+        with open(out, encoding="utf-8") as f:
+            reply = f.read()
+        os.unlink(out)
 
     if proc.returncode != 0:
         stderr = proc.stderr.strip()
@@ -97,7 +94,10 @@ def call(request: dict, socket: str | None = None, timeout: float = TIMEOUT):
                          "(server-start) to your init file if you keep Emacs open. "
                          "`orgwarrior --check` checks the rest of your setup.")
 
-    reply = json.loads(read_elisp_string(proc.stdout))
+    try:
+        reply = json.loads(reply)
+    except ValueError:
+        raise EmacsError(f"Emacs sent a reply orgwarrior doesn't understand: {reply[:200]!r}") from None
     if "error" in reply:
         raise EmacsError(reply["error"])
     return reply["ok"]
