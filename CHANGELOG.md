@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 (2026-10-25)
+
+- `entries_with(prop, None)` in the Python API finds every entry with the
+  property set, whatever its value, and each entry now comes with its ID
+  and the property's value. orgwarrior-web uses it for its notifications.
+- The README opens with a list of what orgwarrior does.
+
 ## 0.4.4 (2026-10-25)
 
 - The tests pass on a system that isn't in English. Org writes weekday

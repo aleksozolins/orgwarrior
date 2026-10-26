@@ -1,6 +1,6 @@
 [project]
 name = "orgwarrior"
-version = "0.4.4"
+version = "0.5.0"
 description = "A taskwarrior-style command line for org-mode's agenda, backed by a running Emacs"
 requires-python = ">=3.11"
 readme = "README.md"
