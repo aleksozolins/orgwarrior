@@ -12,10 +12,28 @@ Emacs to do the work, so your agenda files, TODO keywords, custom agenda
 commands, logging, habits and refile targets behave exactly as they do in
 Emacs.
 
-- You don't need to change your Emacs config. orgwarrior loads its own
-  code into Emacs when it needs to.
-- IDs don't change. A task's ID comes from its file and title, so it's the
-  same in every view and from one day to the next.
+- **Your agenda, the way org builds it.** Today, the week, any day, every
+  open task, your own custom agenda commands, tag and property searches,
+  text searches and a file's outline, with habits and their consistency
+  graphs.
+- **Change anything about a task.** States (with a note where org wants one),
+  dates and repeaters, tags, priority, effort, properties, notes, renaming,
+  refiling, archiving, and moving it around its outline, on several tasks
+  at once.
+- **Add tasks and events** in one line (`orgwarrior add Call the dentist
+  s:fri :@phone:`), to your inbox or anywhere you can refile to.
+- **Look back.** `closed week` lists what you finished, `clocked week` the
+  time you clocked, and `--archive` searches everything you've ever
+  archived.
+- **Clocking**: clock in and out, now or at a time you forgot, and log
+  time already spent.
+- **IDs don't change.** A task's ID comes from its file and title, so it's
+  the same in every view and from one day to the next.
+- **No setup in Emacs.** You don't need to change your Emacs config.
+  orgwarrior loads its own code into Emacs when it needs to, and
+  `orgwarrior --check` says what's missing, if anything.
+- **For scripts and Claude** too: a Python API (`orgwarrior.api`) and a
+  skill for Claude Code (`orgwarrior help --skill`).
 
 [orgwarrior-web](https://github.com/aleksozolins/orgwarrior-web) puts the
 same agenda on a web page for your phone.

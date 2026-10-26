@@ -2026,7 +2026,16 @@ tags read as org reads them; a star line inside a block stays its text."
           (should (string-prefix-p "[" (plist-get dry :closed)))
           (should (string-prefix-p "[" (plist-get dry :captured)))
           (should-not (plist-get dinner :keyword))
-          (should (equal (plist-get dinner :timestamp) "<2030-01-16 Wed 19:00>"))))
+          (should (equal (plist-get dinner :timestamp) "<2030-01-16 Wed 19:00>"))
+          (should (equal (plist-get dry :value) "robin"))
+          (should (equal (plist-get (orgwarrior-test-ok :op "show" :id (plist-get dry :id)) :title)
+                         "Dry cleaning"))))
+      ;; Any value: everything someone else added, theirs named.
+      (orgwarrior-test-ok :op "add" :file file :heading "Tasks"
+                          :fields '(:title "Gutters" :properties (:FROM "sam")))
+      (should (equal (mapcar (lambda (e) (plist-get e :value))
+                             (orgwarrior-test-ok :op "entries" :property "FROM" :value :null))
+                     '("robin" "robin" "sam")))
       (should-not (orgwarrior-test-ok :op "entries" :property "FROM" :value "nobody")))))
 
 (ert-deftest orgwarrior-test-add-body ()

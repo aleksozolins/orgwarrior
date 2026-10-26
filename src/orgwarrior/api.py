@@ -375,9 +375,10 @@ class Orgwarrior:
         NAME_ALL, a #+PROPERTY line or a parent's), or null}."""
         return self._call({"op": "props", "id": task_id, "name": name})
 
-    def entries_with(self, prop: str, value: str) -> list[dict]:
+    def entries_with(self, prop: str, value: str | None) -> list[dict]:
         """The entries whose own PROP is VALUE (FROM = robin: what someone
-        added), archived and commented ones left out: {"title", "keyword",
+        added), or has any value if VALUE is None, archived and commented
+        ones left out: {"id", "value" (PROP's), "title", "keyword",
         "done", "scheduled", "deadline", "timestamp" (the first plain one,
         an event's), "closed", "captured"}, the dates as org writes them,
         or null."""

@@ -1582,19 +1582,25 @@ agenda leaves them out."
     (vconcat (nreverse entries))))
 
 (defun orgwarrior--entries-with (property value)
-  "The entries whose own PROPERTY is VALUE, as data: for a front end
-showing someone what they added (orgwarrior-web's add tokens, :FROM:).
-Title as Emacs shows it, keyword, done, the planning dates, the first
-plain timestamp (an event's), CLOSED and CAPTURED.  Commented and
-archived trees are left out, as the agenda leaves them out."
-  (let ((index (orgwarrior--index)) entries)
+  "The entries whose own PROPERTY is VALUE (any value, if VALUE is nil), as
+data: for a front end showing someone what they added (orgwarrior-web's
+add tokens, :FROM:).  ID, the property's value, title as Emacs shows it,
+keyword, done, the planning dates, the first plain timestamp (an
+event's), CLOSED and CAPTURED.  Commented and archived trees are left
+out, as the agenda leaves them out."
+  (let ((index (orgwarrior--index))
+        (any (memq value '(nil :null)))
+        entries)
     (dolist (entry (orgwarrior-index-entries index))
       (orgwarrior--at entry
-        (when (and (equal (org-entry-get nil property) value)
-                   (not (or (org-in-commented-heading-p) (org-in-archived-heading-p))))
+        (when-let* ((own (org-entry-get nil property))
+                    ((if any (not (string-empty-p own)) (equal own value)))
+                    ((not (or (org-in-commented-heading-p) (org-in-archived-heading-p)))))
           (font-lock-ensure (point) (line-end-position))
           (push (append
-                 (list :title (string-trim (substring-no-properties
+                 (list :id (orgwarrior--id index (orgwarrior-entry-hash entry))
+                       :value own
+                       :title (string-trim (substring-no-properties
                                             (orgwarrior--shown (org-get-heading t t t t))))
                        :scheduled (or (org-entry-get nil "SCHEDULED") :null)
                        :deadline (or (org-entry-get nil "DEADLINE") :null)
