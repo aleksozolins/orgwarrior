@@ -1635,7 +1635,7 @@ out, as the agenda leaves them out."
              (let* ((value (string-trim-left (org-element-property :value ctx) "&?%%"))
                     (sexp-end (cdr (read-from-string value)))
                     (text (string-trim (substring value sexp-end))))
-               (push (list :kind "sexp"
+               (push (list :kind "sexp" :sexp (substring value 0 sexp-end)
                            :dates (orgwarrior--sexp-dates (substring value 0 sexp-end) text days))
                      stamps)
                (goto-char (max (point) (orgwarrior--el-end ctx)))))))))
@@ -1648,7 +1648,8 @@ evaluated for each of the next DAYS days instead."
   (if (eq (org-element-property :type ts) 'diary)
       (let ((raw (org-element-property :raw-value ts)))
         (string-match "<%%\\((.*)\\)>" raw)
-        (list :kind kind :dates (orgwarrior--sexp-dates (match-string 1 raw) "" days)))
+        (list :kind kind :sexp (match-string 1 raw)
+              :dates (orgwarrior--sexp-dates (match-string 1 raw) "" days)))
     (let ((date (lambda (y m d) (format "%04d-%02d-%02d" y m d)))
           (time (lambda (h m) (if h (format "%02d:%02d" h m) :null)))
           (get (lambda (p) (org-element-property p ts))))

@@ -137,7 +137,8 @@ class Orgwarrior:
         "w", "m" or "y"} and warning {"value", "unit"} as org parsed them,
         or null.  Diary sexps (`%%(...)` lines, kind "sexp", and `<%%(...)>`
         timestamps) are evaluated for each of the next DAYS days instead:
-        {"kind", "dates": [{"date", "text"}]}, text being what the sexp
+        {"kind", "sexp", "dates": [{"date", "text"}]}, sexp being the sexp
+        as written ("(diary-anniversary 10 20 1980)"), text what it
         returned ("Robin is 46"), or null.  Done tasks and habits are
         included: what to show is the caller's to decide."""
         return self._call({"op": "calendar", "days": days})

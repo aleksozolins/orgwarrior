@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.2 (2026-10-28)
+
+- `calendar()` in the Python API gives each diary sexp's stamp the sexp
+  itself (`"sexp": "(org-contacts-anniversaries)"`), so a front end can
+  tell one diary line from another. orgwarrior-web uses it to leave
+  org-contacts' birthdays out of its feed.
+
 ## 0.5.1 (2026-10-26)
 
 - On a Mac, a long view (a busy day's agenda, say) could fail with "Emacs

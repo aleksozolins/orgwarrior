@@ -538,6 +538,8 @@ daemon that never had a graphical frame, or batch Emacs as here)."
           (should (equal (plist-get taxes :warning) '(:value 3 :unit "d")))
           (should (equal (plist-get taxes :repeat) '(:type "+" :value 1 :unit "y"))))
         ;; A sexp is evaluated per day, its line's text formatted, links as shown.
+        (should (equal (plist-get (funcall stamp "Birthdays") :sexp)
+                       (format "(diary-anniversary %d %d 1980)" (nth 0 soon) (nth 1 soon))))
         (should (equal (plist-get (funcall stamp "Birthdays") :dates)
                        `((:date ,soon-iso :text ,(format "Robin is %d" (- (nth 2 soon) 1980))))))
         ;; A broken one is dropped, not an error; archived and commented trees aren't there.
